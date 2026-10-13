@@ -1,0 +1,1648 @@
+<title>Leading People Protocol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: program header with level tabs, then a module rail beside a reading column (rail collapses to chips on phones). Palette: navy, burnt orange and blue. */
+:root{
+  --bg:#F4F6FA; --surface:#FFFFFF; --ink:#0F2235; --muted:#4D5D71; --line:#D9E0EA;
+  --accent:#B84A0E; --blue:#1F5FA8; --peach:#FCEBDD; --sky:#E3EDF8; --good:#2E7D4F; --goodbg:#E3F2E8; --warnbg:#FFF3E6;
+  --f-display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",Arial,Helvetica,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0C141E; --surface:#131E2C; --ink:#E7EDF5; --muted:#9DADC1; --line:#26364A;
+  --accent:#F08A4B; --blue:#76A8EA; --peach:#33231A; --sky:#15273C; --good:#63C390; --goodbg:#16301F; --warnbg:#2E2216; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0C141E; --surface:#131E2C; --ink:#E7EDF5; --muted:#9DADC1; --line:#26364A;
+  --accent:#F08A4B; --blue:#76A8EA; --peach:#33231A; --sky:#15273C; --good:#63C390; --goodbg:#16301F; --warnbg:#2E2216; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:0 64px}
+h1,h2,h3,h4{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.08;letter-spacing:-.01em}
+p{margin:0}
+button{font:inherit;color:inherit}
+a{color:var(--blue)}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:4px}
+.eyebrow{font-size:.78rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
+/* header */
+.top{padding-block:28px 18px;display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end;justify-content:space-between}
+.brand h1{font-size:clamp(1.9rem,4.4vw,3rem);font-weight:800}
+.brand h1 span{color:var(--accent)}
+.brand p{color:var(--muted);margin-top:8px;max-width:58ch}
+.status{font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:8px;white-space:nowrap}
+.status i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.status.ok i{background:var(--good)}
+.tracks{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;border-bottom:1px solid var(--line);margin-bottom:28px}
+.tracks button{border:0;background:none;padding:12px 14px 14px;cursor:pointer;text-align:left;border-bottom:3px solid transparent;margin-bottom:-1px;flex:0 0 auto}
+.tracks button b{display:block;font-family:var(--f-display);font-size:1.02rem}
+.tracks button small{color:var(--muted);font-size:.8rem}
+.tracks button[aria-selected="true"]{border-bottom-color:var(--accent)}
+.tracks button[aria-selected="true"] b{color:var(--accent)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:40px;align-items:start}
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);display:flex;flex-direction:column;gap:2px}
+.rail .grp{font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);padding:14px 10px 6px}
+.rail button{border:0;background:none;text-align:left;padding:9px 10px;border-radius:8px;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.rail button:hover{background:var(--sky)}
+.rail button[aria-current="true"]{background:var(--sky)}
+.rail button[aria-current="true"] .rt{color:var(--blue)}
+.rail .rt{font-weight:600;font-size:.93rem;line-height:1.25}
+.rail .rw{font-size:.76rem;color:var(--muted);grid-column:1}
+.rail .ring{grid-row:1/3;grid-column:2;width:26px;height:26px}
+.content{min-width:0}
+.layout.solo{grid-template-columns:minmax(0,1fr)}
+
+/* module */
+.mhead{display:flex;flex-direction:column;gap:10px;margin-bottom:26px}
+.mhead h2{font-size:clamp(2rem,4.6vw,3.1rem);font-weight:800}
+.mhead h2 em{font-style:normal;color:var(--accent)}
+.mhead .sub{font-family:var(--f-display);font-weight:700;font-size:1.25rem;color:var(--blue)}
+.bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;max-width:420px}
+.bar span{display:block;height:100%;background:var(--good);transition:width .3s}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:34px}
+.panel{border-radius:12px;padding:22px 24px;display:flex;flex-direction:column;gap:10px}
+.panel.peach{background:var(--peach)}
+.panel.sky{background:var(--sky)}
+.tag{align-self:flex-start;font-family:var(--f-display);font-weight:700;font-size:.85rem;color:var(--surface);padding:4px 10px;border-radius:6px}
+.peach .tag{background:var(--accent)}
+.sky .tag{background:var(--blue)}
+.shift{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:1.02rem}
+.shift dt{font-size:.75rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding-top:4px}
+.shift dd{margin:0;font-weight:500}
+.shift dd.to{font-weight:600}
+section.blk{margin-bottom:38px}
+section.blk>h3{font-size:1.45rem;font-weight:700;margin-bottom:6px}
+section.blk>.lede{color:var(--muted);margin-bottom:16px;max-width:65ch}
+.learn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card h4{font-size:1.06rem;font-weight:700}
+.card .src{font-size:.8rem;color:var(--muted);font-style:italic}
+.card p{font-size:.95rem}
+.checks{display:flex;flex-direction:column;gap:8px}
+.check{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;cursor:pointer}
+.check input{width:20px;height:20px;margin:2px 0 0;accent-color:var(--good);cursor:pointer}
+.check.done{background:var(--goodbg);border-color:transparent}
+.check.done span{color:var(--muted)}
+.check small{display:block;color:var(--muted);font-size:.84rem;margin-top:3px}
+.scn{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px 24px;display:flex;flex-direction:column;gap:14px}
+.scn .setup{font-size:1.04rem;max-width:65ch}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:12px 16px;text-align:left;cursor:pointer;line-height:1.45}
+.opt:hover{border-color:var(--blue)}
+.opt.picked.best{border-color:var(--good);background:var(--goodbg)}
+.opt.picked.miss{border-color:var(--accent);background:var(--warnbg)}
+.fb{border-left:3px solid var(--blue);padding:4px 0 4px 14px;font-size:.95rem;max-width:65ch}
+.fb b{font-family:var(--f-display)}
+.note{font-size:.88rem;color:var(--muted);max-width:65ch}
+.ref{display:flex;flex-direction:column;gap:16px}
+.ref label{font-weight:600;display:block;margin-bottom:6px;max-width:65ch}
+textarea,input[type="text"],input[type="date"]{width:100%;font:inherit;font-size:.95rem;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+textarea{min-height:92px;resize:vertical}
+.checkin{background:var(--sky);border-radius:12px;padding:20px 24px}
+.checkin ul{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.pager{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:20px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 16px;cursor:pointer;font-weight:600}
+.btn:hover{border-color:var(--blue)}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:var(--bg)}
+
+/* overview */
+.hero{display:flex;flex-direction:column;gap:14px;margin-bottom:32px}
+.hero h2{font-size:clamp(2.1rem,5vw,3.4rem);font-weight:800;max-width:18ch}
+.hero h2 span{color:var(--accent)}
+.hero p{max-width:62ch;font-size:1.06rem}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:36px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.step b{font-family:var(--f-display);display:block;margin-bottom:4px}
+.step p{font-size:.9rem;color:var(--muted)}
+.timeline{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:4px;margin-bottom:8px}
+.tl-wk{font-size:.7rem;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.tl-seg{border:0;border-radius:8px;padding:10px 8px;text-align:left;cursor:pointer;font-size:.8rem;font-weight:600;line-height:1.2;background:var(--sky);color:var(--ink);min-height:62px;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
+.tl-seg:hover{outline:2px solid var(--blue)}
+.tl-seg.zero{background:var(--peach)}
+.tl-seg.cap{background:var(--goodbg)}
+.tl-seg small{font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
+.tl-wrap{overflow-x:auto;margin-bottom:36px}
+.tl-inner{min-width:640px}
+.me{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.me label{font-size:.85rem;font-weight:600;display:flex;flex-direction:column;gap:6px}
+.bigpct{display:flex;align-items:center;gap:18px;margin-bottom:20px}
+.bigpct svg{width:72px;height:72px;flex:0 0 auto}
+.bigpct b{font-family:var(--f-display);font-size:1.3rem;display:block}
+
+/* toolkit */
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin-bottom:18px}
+.tool>h3{font-size:1.3rem;margin-bottom:6px}
+.tool>.lede{color:var(--muted);margin-bottom:16px;max-width:65ch}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid2 label{font-weight:600;font-size:.9rem;display:flex;flex-direction:column;gap:6px}
+.out{background:var(--sky);border-radius:10px;padding:16px 18px;margin-top:14px;white-space:pre-wrap;font-size:.95rem}
+.qlist{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:7px;max-width:68ch}
+.brv{display:flex;flex-direction:column;gap:12px}
+.brv-row{display:grid;grid-template-columns:150px minmax(0,1fr) 30px;gap:12px;align-items:center}
+.brv-row b{font-family:var(--f-display)}
+.brv-row small{display:block;color:var(--muted);font-size:.8rem;font-weight:400;font-family:var(--f-body)}
+.brv-row input{width:100%;accent-color:var(--blue)}
+.brv-row output{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.books{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 24px}
+.books div{padding-block:8px;border-bottom:1px solid var(--line)}
+.books b{display:block}
+.books span{font-size:.86rem;color:var(--muted)}
+
+/* senior tracks */
+.ladder{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:28px;padding-top:4px;border-top:1px solid var(--line);padding-block:16px 0}
+.ladder span{font-size:.8rem;padding:6px 10px;border-radius:20px;border:1px solid var(--line);color:var(--muted)}
+.ladder span.on{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:600}
+.losses{display:flex;flex-direction:column;gap:14px}
+.loss{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.loss h4{grid-column:1/-1;background:var(--surface);padding:14px 20px;font-size:1.15rem}
+.loss h4 small{font-family:var(--f-body);font-weight:600;font-size:.72rem;letter-spacing:.12em;color:var(--muted);display:block;margin-bottom:4px}
+.loss div{padding:14px 20px;font-size:.95rem}
+.loss .c{background:var(--peach)}
+.loss .t{background:var(--sky)}
+.loss div b{display:block;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+.loss .c b{color:var(--accent)}
+.loss .t b{color:var(--blue)}
+.draft{display:inline-block;font-size:.78rem;font-weight:600;padding:4px 10px;border-radius:6px;background:var(--warnbg);color:var(--accent);margin-bottom:12px}
+
+@media (max-width:860px){
+  .layout{grid-template-columns:1fr;gap:20px}
+  .rail{position:static;flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:6px}
+  .rail .grp{display:none}
+  .rail button{flex:0 0 auto;border:1px solid var(--line);grid-template-columns:auto auto}
+  .rail .rw{display:none}
+  .rail .ring{grid-row:1;width:20px;height:20px}
+  .steps{grid-template-columns:1fr 1fr}
+}
+@media (max-width:620px){
+  .pair,.learn,.grid2,.me,.books{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}
+  .loss{grid-template-columns:1fr}
+  .brv-row{grid-template-columns:1fr 30px}
+  .brv-row b{grid-column:1/-1}
+  .panel,.scn,.tool,.checkin{padding:18px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- Leading People additions ---------- */
+.sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.say-l{font-weight:600;display:block;margin-bottom:6px}
+.setup.step2{border-top:1px dashed var(--line);padding-top:14px;font-weight:500}
+.opt.dim{opacity:.55}
+.opt:disabled{cursor:default}
+.opt.picked.good{border-color:var(--good);background:var(--goodbg)}
+.opt.picked.mid{border-color:var(--blue);background:var(--sky)}
+.opt.picked.bad{border-color:var(--accent);background:var(--warnbg)}
+.rate{display:inline-block;font-family:var(--f-display);font-weight:700;font-size:.78rem;padding:2px 8px;border-radius:5px;margin-right:6px;color:var(--surface)}
+.rate.good{background:var(--good)} .rate.mid{background:var(--blue)} .rate.bad{background:var(--accent)}
+.reply{background:var(--bg);border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:4px;max-width:65ch}
+.reply p{font-style:italic}
+.debrief{background:var(--sky);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.tag{color:var(--surface)}
+.rpcard{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;background:var(--surface);border:1px solid var(--line);border-left:0;border-radius:12px;padding:20px 22px;box-shadow:inset 4px 0 0 var(--blue)}
+.rpc-main{display:flex;flex-direction:column;gap:6px;min-width:0}
+.rpc-main h4{font-size:1.2rem}
+.rpc-side{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.score{display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.score b{font-family:var(--f-display);font-size:1.8rem;color:var(--good);font-variant-numeric:tabular-nums}
+.score span{font-size:.72rem;color:var(--muted)}
+.lab{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+.lab-head{display:flex;flex-direction:column;gap:6px}
+.lab-head .tag{background:var(--accent)}
+.lab-head h3{font-size:1.25rem}
+.agenda{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.agenda li{display:grid;grid-template-columns:70px minmax(0,1fr);gap:12px;align-items:start}
+.agenda li>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.min{font-size:.78rem;font-weight:600;color:var(--blue);font-variant-numeric:tabular-nums;padding-top:2px;white-space:nowrap}
+.obs{margin:4px 0 0;padding-left:20px;font-size:.92rem}
+.linkrow{text-align:left;width:100%;font:inherit;color:inherit;grid-template-columns:90px 1fr}
+.linkrow:hover{border-color:var(--blue)}
+.rp-picker{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px}
+.rp-picker button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;text-align:left;cursor:pointer}
+.rp-picker button b{display:block;font-size:.9rem}
+.rp-picker button small{color:var(--muted);font-size:.76rem}
+.rp-picker button[aria-selected="true"]{border-color:var(--blue);background:var(--sky)}
+.studio{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px;align-items:start}
+.brief{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:8px;font-size:.93rem}
+.brief h3{font-size:1.2rem}
+.modes{display:flex;gap:6px;flex-wrap:wrap}
+.modes button{border:1px solid var(--line);background:var(--bg);border-radius:20px;padding:6px 12px;cursor:pointer;font-size:.85rem}
+.modes button[aria-checked="true"]{background:var(--blue);border-color:var(--blue);color:var(--surface);font-weight:600}
+.skills{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.chat{display:flex;flex-direction:column;gap:12px;min-width:0}
+.warn{background:var(--warnbg);border-radius:10px;padding:12px 14px;font-size:.92rem}
+.chat-log{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-height:260px;max-height:460px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.empty{color:var(--muted);margin:auto;text-align:center;max-width:40ch}
+.msg{max-width:82%;display:flex;flex-direction:column;gap:2px}
+.msg span{font-size:.72rem;font-weight:600;color:var(--muted)}
+.msg p{padding:10px 14px;border-radius:12px;white-space:pre-wrap}
+.msg.me{align-self:flex-end;text-align:left}
+.msg.me span{align-self:flex-end}
+.msg.me p{background:var(--sky)}
+.msg.them p{background:var(--peach)}
+.typing{color:var(--muted);font-style:italic}
+.composer{display:flex;flex-direction:column;gap:8px}
+.composer textarea{min-height:76px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn.ghost{background:none}
+.btn:disabled{opacity:.5;cursor:default}
+.feedback{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.fb-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.fb-head h3{font-size:1.15rem;margin-top:4px}
+.fb-rows{display:flex;flex-direction:column;gap:10px}
+.fb-row{display:grid;grid-template-columns:54px minmax(0,1fr);gap:12px;align-items:start;border-top:1px solid var(--line);padding-top:10px}
+.fb-row p{font-size:.92rem}
+.fb-row .tip{color:var(--blue)}
+.dots{display:flex;gap:4px;padding-top:5px}
+.dots i{width:12px;height:12px;border-radius:50%;background:var(--line);display:block}
+.dots i.on{background:var(--good)}
+.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.stages{display:flex;flex-direction:column;gap:12px;position:relative}
+.stage{display:grid;grid-template-columns:86px minmax(0,1fr);gap:16px;align-items:start}
+.st-n{font-family:var(--f-display);font-weight:700;font-size:.85rem;color:var(--surface);background:var(--blue);border-radius:8px;padding:8px 10px;text-align:center}
+.stage:first-child .st-n{background:var(--muted)}
+.stage:nth-child(4) .st-n,.stage:nth-child(5) .st-n{background:var(--accent)}
+.st-body{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.st-body h4{font-size:1.12rem}
+.st-body ul{margin:2px 0;padding-left:20px;font-size:.94rem}
+.st-meta{display:flex;flex-direction:column;gap:4px;font-size:.88rem;color:var(--muted);border-top:1px solid var(--line);padding-top:8px}
+.escalate{background:var(--warnbg);border-radius:12px;padding:18px 22px;display:flex;flex-direction:column;gap:8px}
+.escalate .tag{background:var(--accent)}
+.escalate ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:30px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:4px}
+.tile span{font-size:.75rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tile b{font-family:var(--f-display);font-size:1.6rem;font-variant-numeric:tabular-nums}
+.tile small{color:var(--muted);font-size:.8rem}
+.delta{align-self:flex-start;font-size:.8rem;font-weight:700;padding:2px 8px;border-radius:10px;background:var(--line);font-variant-numeric:tabular-nums}
+.delta.up{background:var(--goodbg);color:var(--good)} .delta.down{background:var(--warnbg);color:var(--accent)}
+.gtable{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.gh,.gr{display:grid;grid-template-columns:minmax(0,1fr) 84px 84px 120px;gap:12px;align-items:center;padding:10px 14px}
+.gh{font-size:.75rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+.gr{border-top:1px solid var(--line);font-size:.93rem}
+.gr select,.gr input{width:100%;font:inherit;font-size:.9rem;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.bars{display:flex;flex-direction:column;gap:3px}
+.bars div{height:7px;border-radius:4px}
+.b0{background:var(--line)} .b1{background:var(--good)}
+.legend{display:flex;gap:16px;font-size:.82rem;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:14px;height:7px;border-radius:4px;margin-right:6px;vertical-align:middle}
+@media (max-width:860px){ .studio{grid-template-columns:1fr} }
+@media (max-width:620px){
+  .rpcard{grid-template-columns:1fr} .rpc-side{align-items:flex-start;flex-direction:row;align-items:center}
+  .tiles{grid-template-columns:1fr}
+  .gh{display:none} .gr{grid-template-columns:1fr 1fr} .gr>span{grid-column:1/-1} .gr>div{grid-column:1/-1}
+  .stage{grid-template-columns:1fr} .st-n{justify-self:start}
+  .agenda li{grid-template-columns:1fr}
+  .msg{max-width:94%}
+}
+/* ---------- sharing + dashboard ---------- */
+.visible{background:var(--sky);border-radius:12px;padding:18px 22px;display:flex;flex-direction:column;gap:12px}
+.visible .tag{background:var(--blue)}
+.vis-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;font-size:.93rem}
+.vis-grid b{display:block;margin-bottom:4px}
+.sharebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:.88rem}
+.sharebar .btn{padding:6px 12px;font-size:.85rem}
+.shared-on{color:var(--good);font-weight:600}
+.dash-bar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:22px}
+.dash-bar label{font-weight:600;display:flex;gap:8px;align-items:center}
+.dash-bar select{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.empty-dash{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:26px;display:flex;flex-direction:column;gap:8px;max-width:70ch}
+.hm-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.hm{border-collapse:collapse;width:100%;min-width:720px;font-size:.88rem;font-variant-numeric:tabular-nums}
+.hm th,.hm td{padding:8px 10px;text-align:center;border-bottom:1px solid var(--line)}
+.hm thead th{font-size:.72rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+.hm tbody th{text-align:left;font-weight:400;min-width:180px}
+.hm tbody th small{display:block;color:var(--muted);font-size:.76rem}
+.hm tr.sel{background:var(--sky)}
+.linkbtn{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--blue);cursor:pointer;text-align:left}
+.linkbtn:hover{text-decoration:underline}
+.cell{display:inline-block;min-width:38px;padding:4px 6px;border-radius:6px;font-size:.8rem;font-weight:600}
+.cell.c0{background:var(--bg);color:var(--muted)}
+.cell.c1{background:var(--peach)}
+.cell.c2{background:var(--warnbg)}
+.cell.c3{background:var(--sky)}
+.cell.c4{background:var(--goodbg);color:var(--good)}
+.detail{border-top:2px solid var(--line);padding-top:24px;display:flex;flex-direction:column;gap:12px}
+.detail-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+.detail-head h3{font-size:1.6rem}
+.dh{font-size:1.15rem;margin-top:14px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.card.prac{gap:10px}
+details summary{cursor:pointer;font-weight:600;color:var(--blue)}
+.chat-log.static{max-height:360px;margin-top:10px}
+@media (max-width:620px){ .vis-grid{grid-template-columns:1fr} }
+</style>
+
+<div class="wrap">
+  <header class="top" id="hdr"></header>
+  <nav class="ladder" id="ladder" aria-label="Where this protocol sits"></nav>
+  <div class="layout">
+    <aside class="rail" id="rail" aria-label="Sections"></aside>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+<script>
+const FT_MODULES = [
+{ id:"m0", weeks:"Week 0", wk:[0,0], short:"Before day one",
+  eyebrow:"Before day one", title:"Start the new job <em>on purpose</em>", sub:"The first conversations set the terms",
+  changes:"On Friday they were a peer. On Monday they are responsible for the team, and nobody has explained to the team how that works yet. Most new leaders let this moment happen to them. The first week sets expectations that are hard to undo later.",
+  from:"I got the job.", to:"I have a new job, and I'm starting it deliberately.",
+  learn:[
+    {h:"A promotion is a role change, not a reward", src:"Linda Hill, Becoming a Manager",
+     p:"Hill followed new managers through their first year. Most expected the job to be about authority and control. They found it was about trust, influence and depending on other people. The identity change took most of that first year."},
+    {h:"Habits that made you successful can work against you", src:"Michael Watkins, The First 90 Days",
+     p:"Watkins found that people in transition often fail by doubling down on what worked in the old role. He recommends agreeing on expectations with your own leader early and choosing a few early wins that build credibility."},
+    {h:"Start with why you said yes", src:"Simon Sinek, Start With Why and Leaders Eat Last",
+     p:"Sinek argues that people follow leaders who are clear about their purpose. He describes leadership as taking responsibility for the people in your care, not as a rank. Knowing why you took this role will carry you through the weeks it feels hard."}
+  ],
+  practice:[
+    {id:"m0p1", t:"Meet with your leader and agree on three outcomes for your first 90 days.", s:"Write them down. You'll revisit them at your 90-day review."},
+    {id:"m0p2", t:"Agree with your leader how and when the team hears about your promotion.", s:"Your leader should introduce the change. Don't announce yourself alone."},
+    {id:"m0p3", t:"Write three sentences on why you said yes to this role.", s:"Use the reflection box below."},
+    {id:"m0p4", t:"List former peers you're close to, and plan a reset conversation with each in your first week.", s:"Use the former-peer reset guide in the Toolkit."},
+    {id:"m0p5", t:"Block 30 minutes a week on your calendar for this program for the next 12 weeks."}
+  ],
+  scenario:{ setup:"The day your promotion is announced, a former peer messages you: “Congrats!! Guess we can't complain about the metrics in the group chat anymore lol.”",
+    options:[
+      {t:"Reply “Ha, I'll pretend I didn't see that” and move on.", best:false, fb:"It feels friendly, but a joke now becomes the norm later. You've signaled that the venting can continue as long as you look away."},
+      {t:"“Thank you! I'd really like to grab 20 minutes this week to talk about what changes and what stays the same.”", best:true, fb:"This keeps the warmth and names the change directly. It also puts the reset conversation on the calendar while it's easy, before a hard moment forces it."},
+      {t:"Quietly leave the group chat without saying anything.", best:false, fb:"Leaving may be right eventually, but silence reads as distance or judgment. The team fills the gap with their own story about you."}
+    ]},
+  reflect:[
+    {id:"m0r1", q:"Why did you say yes to this role? (Three sentences.)"},
+    {id:"m0r2", q:"What did being great at your old job require? Which of those habits will help now, and which might get in the way?"},
+    {id:"m0r3", q:"Ninety days from now, what do you want your team to say about working for you?"}
+  ],
+  checkin:["Your leader shares why they chose you, with specific strengths they've seen.","Your leader names one growth area openly, so there are no surprises later.","Agree on your weekly 1:1 time for the next 12 weeks.","Ask who your peer thought partner will be: another leader you can process hard moments with."]
+},
+{ id:"m1", weeks:"Weeks 1–2", wk:[1,2], short:"Lose “my way”",
+  eyebrow:"What a promotion takes away · “my way”", title:"They lose <em>“my way”</em>", sub:"Connect first, then lead",
+  changes:"Their way of working got them promoted. It was built for one person, and nobody on the team is that person. Feedback from someone who doesn't know you sounds like criticism. Feedback from someone who knows you sounds like help.",
+  from:"Do it the way I did it.", to:"Know each person well enough to lead them.",
+  learn:[
+    {h:"Trust is built in small moments", src:"Brené Brown, Dare to Lead",
+     p:"Brown breaks trust into seven parts she calls BRAVING: boundaries, reliability, accountability, vault (keeping confidences), integrity, non-judgment and generosity. She compares trust to marbles in a jar, added one small kept promise at a time."},
+    {h:"People need to feel safe inside the team", src:"Simon Sinek, Leaders Eat Last",
+     p:"Sinek's “Circle of Safety” idea is that when people don't have to protect themselves from their own leader, they put that energy into the work and into each other."},
+    {h:"Care personally before you challenge directly", src:"Kim Scott, Radical Candor",
+     p:"Scott's model pairs caring about the person with being willing to tell them the truth. Challenge without care feels harsh. Care without challenge leaves people without the information they need to grow."},
+    {h:"Seek first to understand", src:"Stephen Covey, The 7 Habits of Highly Effective People",
+     p:"Covey's fifth habit asks you to understand someone's situation before trying to be understood. For a new leader, this means listening before changing anything."}
+  ],
+  practice:[
+    {id:"m1p1", t:"Hold a getting-to-know-you 1:1 with every person on your team.", s:"Questions are in the Toolkit. These are listening meetings, not status meetings."},
+    {id:"m1p2", t:"Keep a private one-page note for each person.", s:"Their strengths, what they want to grow toward, what their work environment is like, and how they like to receive feedback."},
+    {id:"m1p3", t:"Ask each person: what's one thing I did as a peer you'd like me to keep doing, and one you'd like me to stop?"},
+    {id:"m1p4", t:"Do three small things you said you'd do, each within 48 hours.", s:"These are marbles in the jar."},
+    {id:"m1p5", t:"Take the trust self-check in the Toolkit and note your lowest score."}
+  ],
+  scenario:{ setup:"One nurse on your team documents differently than you did. Her notes are slower and more thorough, and she finishes calls later in the day. Her metrics are met.",
+    options:[
+      {t:"Coach her to use your faster template so her day ends earlier.", best:false, fb:"This is “my way” in action. Her results are fine, so the change serves your preference, not her or the patients. She also learns that meeting the standard isn't enough with you."},
+      {t:"Ask what works for her about her approach, and check whether the late-day calls create any risk for patients.", best:true, fb:"You learn something about her strengths and you check the one thing that matters: whether patients are affected. If there's no risk, her way is a valid way."},
+      {t:"Say nothing. Her numbers are fine.", best:false, fb:"Not wrong, but it misses a chance to connect. Asking about someone's work, without trying to change it, is one of the easiest ways to build trust."}
+    ]},
+  reflect:[
+    {id:"m1r1", q:"Whose working style is most different from yours? What might they be good at that you aren't?"},
+    {id:"m1r2", q:"What surprised you most in your getting-to-know-you 1:1s?"}
+  ],
+  checkin:["Share two things you learned about your team that you didn't know as a peer.","Talk through your lowest trust self-check score and one way to build it.","Ask your leader how they learned to adapt their style to different people."]
+},
+{ id:"m2", weeks:"Weeks 3–4", wk:[3,4], short:"Lose the scoreboard",
+  eyebrow:"What a promotion takes away · the scoreboard", title:"They lose <em>the scoreboard</em>", sub:"Build a new one",
+  changes:"Their numbers used to tell them every day that they were good at the job. A leader's results show up weeks later, in other people's work. Without a new way to measure progress, most new leaders drift back to the work that still gives them a daily score.",
+  from:"My numbers prove I'm good at my job.", to:"My team's growth is the proof.",
+  learn:[
+    {h:"Feeling less capable is normal", src:"Linda Hill, Becoming a Manager",
+     p:"The new managers in Hill's research described feeling less competent for months. That wasn't a sign they were failing. It was the old identity letting go before the new one formed. Say this out loud on day one so it doesn't feel like a secret."},
+    {h:"Lead measures and lag measures", src:"McChesney, Covey and Huling, The 4 Disciplines of Execution",
+     p:"Lag measures tell you if you reached a goal, but only after the fact. Lead measures are the weekly actions you control that predict the goal. A leader's month-end metrics are lag. How the leader spends each week is lead."},
+    {h:"What a leader's scoreboard tracks", src:"Program guidance",
+     p:"How fast problems reach you. Whether each person's trend is improving. How many decisions the team made without you. Whether feedback happened within days of noticing something. Whether you kept your 1:1s."}
+  ],
+  practice:[
+    {id:"m2p1", t:"Pick three lead measures from the list below and track them weekly.", s:"Your weekly scoreboard."},
+    {id:"m2p2", t:"Each Friday, write down one thing a team member did better this week because of something you did."},
+    {id:"m2p3", t:"Ask your leader how they'll judge your success at 30, 60 and 90 days."},
+    {id:"m2p4", t:"Notice one moment you felt less capable. Write down what the job was actually asking of you then."}
+  ],
+  measures:true,
+  scenario:{ setup:"End of week three. Your own patient panel numbers have dipped because you spent hours this week helping a nurse who was struggling. You feel behind.",
+    options:[
+      {t:"Stay late a few nights to get your own numbers back to where they used to be.", best:false, fb:"This pulls you back toward your old identity. Your old scoreboard is the one you know how to win, so it's tempting. It also teaches you that supporting people is the extra work, when it's now the main work."},
+      {t:"Talk with your leader about panel expectations, and share what the support time produced.", best:true, fb:"This is the new scoreboard. Supporting a struggling nurse is leadership work. Your leader can help you balance it and should know where your time is going."},
+      {t:"Cut back on 1:1s until your own numbers recover.", best:false, fb:"1:1s are usually the first thing to go and the most expensive to lose. Problems start reaching you later, which costs more time than it saves."}
+    ]},
+  reflect:[
+    {id:"m2r1", q:"Where do you still look for daily proof that you're good at your job?"},
+    {id:"m2r2", q:"What would count as a real win for you as a leader this week?"}
+  ],
+  checkin:["Review your three lead measures together. Are they the right ones?","Agree on what “good” looks like at 30, 60 and 90 days.","Talk about the moment you felt less capable, and what it taught you."]
+},
+{ id:"m3", weeks:"Weeks 5–6", wk:[5,6], short:"Lose the quick fix",
+  eyebrow:"What a promotion takes away · the quick fix", title:"They lose <em>the quick fix</em>", sub:"Coach instead of rescue",
+  changes:"For years, the answer to every problem was “I'll handle it.” It worked, and it's part of why they got promoted. Now every rescue teaches the team to wait for one, and the leader becomes the bottleneck.",
+  from:"I'll handle it.", to:"What do you think we should do?",
+  learn:[
+    {h:"Accidental diminishers", src:"Liz Wiseman, Multipliers",
+     p:"Wiseman describes well-meaning leaders who shrink their team's capability without realizing it. One type is the rescuer, who steps in the moment someone struggles. People stop building the muscle because the leader keeps lifting the weight."},
+    {h:"Stay curious a little longer", src:"Michael Bungay Stanier, The Coaching Habit",
+     p:"Bungay Stanier's advice is to slow the rush to give advice and ask one more question first. His favorite is three words: “And what else?” The first answer someone gives is rarely the whole picture."},
+    {h:"Decide where decisions live", src:"Program guidance",
+     p:"Agree with your team on three kinds of decisions: ones they make on their own, ones they make and tell you about after, and ones they bring to you first. Most rescuing happens because nobody has drawn these lines."}
+  ],
+  practice:[
+    {id:"m3p1", t:"Keep a rescue log for one week.", s:"Each time you step in and fix something, note the question you could have asked instead."},
+    {id:"m3p2", t:"Use a coaching question in five conversations.", s:"“What have you tried?” “What do you think the next step is?” “And what else?” “What do you need from me?”"},
+    {id:"m3p3", t:"Agree with your team on which decisions are theirs, which they tell you about, and which they bring to you."},
+    {id:"m3p4", t:"Hand off one task you've been doing for the team, with a clear outcome and a check-in date."}
+  ],
+  scenario:{ setup:"A nurse messages you: “Patient hasn't sent BP readings in five days. What do I do?” You know the answer right away. The patient isn't in danger.",
+    options:[
+      {t:"Tell her the steps. It's faster.", best:false, fb:"It's faster today. Next week she'll message you again, and so will everyone who watched it work. Speed now becomes your workload later."},
+      {t:"“What have you tried so far, and what do you think the next step is?” Then confirm or add to her plan.", best:true, fb:"She does the thinking, you check it. Over time she'll skip the message and act on her own judgment, which is the goal."},
+      {t:"Call the patient yourself so it's handled.", best:false, fb:"This is the classic rescue. The patient gets a call, but the nurse loses the chance to build the skill and learns that hard calls go up the chain."}
+    ]},
+  note:"Coaching is for growth moments. If a patient is at risk, act first and debrief afterward.",
+  reflect:[
+    {id:"m3r1", q:"What do you personally get out of being the person who fixes things?"},
+    {id:"m3r2", q:"Looking at your rescue log, what does the team lose each time you step in?"}
+  ],
+  checkin:["Share your rescue log. Which entries surprised you?","Show your leader the decision lines you agreed on with your team.","Ask your leader where they still struggle not to rescue."]
+},
+{ id:"m4", weeks:"Weeks 7–8", wk:[7,8], short:"Lose the right to guess",
+  eyebrow:"What a promotion takes away · the right to guess", title:"They lose <em>the right to guess</em>", sub:"Facts before stories",
+  changes:"A peer can think “she just doesn't care” about a coworker who isn't performing, and it costs nothing. When a leader thinks it, it becomes a decision about someone's job. The story starts shaping every conversation that follows.",
+  from:"She doesn't care.", to:"I see a missed number. I don't know why yet.",
+  learn:[
+    {h:"The Path to Action", src:"Patterson, Grenny, McMillan and Switzler, Crucial Conversations",
+     p:"We see or hear something, tell ourselves a story about it, feel something because of the story, then act. Most of us skip straight from the facts to the story without noticing. The fix is to go back to what you actually saw."},
+    {h:"Start with heart", src:"Crucial Conversations",
+     p:"Before a hard conversation, ask what you really want: for yourself, for the other person, and for the relationship. If the honest answer is “to prove I'm right” or “to document this,” reset before you start."},
+    {h:"State your path", src:"Crucial Conversations",
+     p:"Share the facts first. Then share your interpretation as a possibility, not a conclusion. Ask for their view and mean it. The authors use the acronym STATE for this sequence."},
+    {h:"Clear is kind, and prompt is kind", src:"Brené Brown, Dare to Lead",
+     p:"Brown argues that avoiding a hard conversation feels kind but isn't. A short conversation within a few days is easier for everyone than a long one after months of frustration have built up."}
+  ],
+  practice:[
+    {id:"m4p1", t:"Use the Conversation Planner in the Toolkit before your next performance conversation."},
+    {id:"m4p2", t:"For one week, catch yourself telling a story about someone's motives. Write down only the facts."},
+    {id:"m4p3", t:"Hold one check-in within 48 hours of noticing a missed standard."},
+    {id:"m4p4", t:"After that conversation, compare what you assumed with what you learned."}
+  ],
+  scenario:{ setup:"The month-end report shows one nurse missed her monitoring-call target for the second month in a row. Your first thought: “She just doesn't care anymore.”",
+    options:[
+      {t:"Send an email restating the expectation and a deadline for improvement.", best:false, fb:"This acts on the story. If something real is in the way, like a scheduling conflict or a panel problem, the email won't fix it, and she'll feel judged without being heard."},
+      {t:"Schedule a conversation this week, open with the numbers, and ask what's getting in the way.", best:true, fb:"Facts first, then curiosity. You'll either find a barrier you can help solve, or you'll have a clear, fair basis for next steps. Either way, it's prompt."},
+      {t:"Give it one more month to see if it fixes itself.", best:false, fb:"Waiting makes the conversation harder and the pattern longer. It also tells the rest of the team that missing the standard twice has no effect."}
+    ]},
+  note:"In patient care, “non-adherent” often hides a barrier nobody has asked about. “Doesn't care” does the same thing to a nurse. Treat it as “barrier unknown” until you've asked.",
+  reflect:[
+    {id:"m4r1", q:"What's the most recent story you told yourself about someone on your team? What facts did you actually have?"},
+    {id:"m4r2", q:"After your check-in conversation, what did you learn that you didn't expect?"}
+  ],
+  checkin:["Walk your leader through a filled-in Conversation Planner.","Debrief your 48-hour check-in: what went well, what you'd change.","Ask your leader about a time their story about someone turned out to be wrong."]
+},
+{ id:"m5", weeks:"Weeks 9–10", wk:[9,10], short:"Lose their peers",
+  eyebrow:"What a promotion takes away · their peers", title:"They lose <em>their peers</em>", sub:"Hold the standard with people you like",
+  changes:"They used to be part of the venting. Now the room goes quiet when they join, and a former peer's missed standard is theirs to address. If they skip that conversation, the rest of the team notices before the former peer does.",
+  from:"One of us.", to:"Fair to all of us.",
+  learn:[
+    {h:"Make it safe: mutual purpose and respect", src:"Crucial Conversations",
+     p:"People get defensive when they doubt your motive or feel disrespected. Before the hard part, make it clear you want something good for them, and that you still respect them."},
+    {h:"Content, pattern, relationship", src:"Grenny, Patterson et al., Crucial Accountability",
+     p:"The first time, talk about the specific miss. If it happens again, talk about the pattern. If it continues, talk about what it's doing to trust between you. Staying on the first-time conversation forever is how patterns grow."},
+    {h:"Holding standards is fairness", src:"Patrick Lencioni, The Five Dysfunctions of a Team",
+     p:"Lencioni names avoiding accountability as one of the ways teams break down. When a leader lets a friend slide, the people meeting the standard are the ones who pay for it."},
+    {h:"Performance conversations are for success", src:"Program principle",
+     p:"A performance conversation isn't a step in a paper trail toward letting someone go. Its purpose is to help the person succeed. When trust exists, people hear it that way."}
+  ],
+  practice:[
+    {id:"m5p1", t:"If you haven't yet, hold the reset conversation with each former peer you were close to.", s:"Guide in the Toolkit."},
+    {id:"m5p2", t:"Role-play your next hard conversation with your leader or thought partner before you have it."},
+    {id:"m5p3", t:"Pick one person to process frustrations with: your leader or a peer leader. Stop venting to your team."},
+    {id:"m5p4", t:"Hold one performance conversation during this program, then debrief it with your leader."}
+  ],
+  scenario:{ setup:"Your closest friend on the team has submitted documentation late three times this month. Others have noticed and are watching what you do.",
+    options:[
+      {t:"Bring it up casually during a personal chat so it doesn't feel like a big deal.", best:false, fb:"Mixing it into friendly conversation makes it easy to brush off, and it blurs what's personal and what's work. It can also feel like an ambush."},
+      {t:"Ask for a private 1:1. Name the friendship, share the facts, ask what's happening, and agree on a plan.", best:true, fb:"Naming the friendship lowers the awkwardness instead of pretending it isn't there. You're treating them like every other team member, which is what the rest of the team needs to see."},
+      {t:"Remind everyone about documentation deadlines at the team huddle.", best:false, fb:"Everyone who's on time feels scolded, the person it's about knows it was aimed at them, and the team sees you avoiding a direct conversation."}
+    ]},
+  reflect:[
+    {id:"m5r1", q:"Who on your team would you most avoid giving feedback to? Why?"},
+    {id:"m5r2", q:"What would it cost the rest of the team if you never had that conversation?"}
+  ],
+  checkin:["Role-play a hard conversation together. Switch roles once.","Debrief a performance conversation you held.","Talk about how your friendships on the team have changed, and what you miss."]
+},
+{ id:"m6", weeks:"Weeks 11–12", wk:[11,12], short:"What you earn",
+  eyebrow:"What they can earn in return", title:"A team that tells them <em>the truth</em>", sub:"Authority comes with the title. Trust comes from what you do.",
+  changes:"The title gives authority on day one. Trust comes from small things: connecting on a personal level, doing what you said you'd do, saying “I don't know,” and owning a miss out loud. People who feel safe with their leader bring problems early. That's how a leader finds out what is really going on.",
+  from:"My title gives me authority.", to:"My actions give me trust.",
+  learn:[
+    {h:"Safe teams report more problems, not fewer", src:"Amy Edmondson, The Fearless Organization",
+     p:"Studying hospital teams, Edmondson found that the better-led units reported more medication errors, not fewer. They weren't making more mistakes. People felt safe enough to say so. She calls this psychological safety."},
+    {h:"Just culture", src:"Patient safety practice",
+     p:"Healthcare safety work separates honest mistakes, at-risk choices and reckless behavior, and responds to each differently. Punishing honest mistakes guarantees you'll hear about fewer of them."},
+    {h:"Leadership is a practice, not a rank", src:"Simon Sinek",
+     p:"Sinek points out that holding a leadership title doesn't make someone a leader. The people who follow you decide that, based on how you treat them over time."}
+  ],
+  practice:[
+    {id:"m6p1", t:"Run a short anonymous pulse with your team.", s:"Three questions: Can you bring problems to me early? Do I follow through on what I say? Do you know what good work looks like here?"},
+    {id:"m6p2", t:"Own one miss out loud with your team."},
+    {id:"m6p3", t:"Thank someone specifically for bringing you bad news early."},
+    {id:"m6p4", t:"Write three leadership commitments: what your team can count on from you.", s:"Use the reflection box below."},
+    {id:"m6p5", t:"Hold your 90-day review with your leader.", s:"Bring your first 90-day outcomes, your scoreboard, and your pulse results."}
+  ],
+  scenario:{ setup:"A nurse tells you she forgot to escalate an abnormal reading yesterday. She caught it this morning, and the patient is fine.",
+    options:[
+      {t:"Remind her firmly how serious this could have been and document it right away.", best:false, fb:"Accountability matters, but if telling you earns a reprimand first, next time you won't hear about it. Start with the patient and the learning; follow your safety reporting process without making it a punishment."},
+      {t:"Thank her for telling you, make sure the patient follow-up is complete, then look together at what made it easy to miss.", best:true, fb:"This keeps the patient safe, rewards honesty, and fixes the system. It's the response that makes people bring you the next problem early."},
+      {t:"Tell her not to worry about it since the patient is fine.", best:false, fb:"This feels kind, but it skips the learning and the safety process. Next time the outcome might be different."}
+    ]},
+  note:"Always follow your organization's patient safety and event reporting process.",
+  reflect:[
+    {id:"m6r1", q:"My three leadership commitments. What can my team always count on from me?"},
+    {id:"m6r2", q:"When did someone on your team last bring you a problem early? What made that possible?"},
+    {id:"m6r3", q:"Looking back at Week 0: what's changed in how you see your job?"}
+  ],
+  checkin:["Review your first 90-day outcomes together.","Share your pulse results honestly, including the uncomfortable ones.","Agree on your development focus for the next quarter."]
+}
+];
+
+const FT_MEASURES = [
+  {id:"ms1", t:"Days between noticing a missed standard and talking about it"},
+  {id:"ms2", t:"1:1s held as scheduled this week"},
+  {id:"ms3", t:"Decisions the team made without me"},
+  {id:"ms4", t:"Specific praise given (named the behavior, not just “great job”)"},
+  {id:"ms5", t:"Problems someone brought to me before they got big"},
+  {id:"ms6", t:"Team members whose monthly trend improved"},
+  {id:"ms7", t:"Promises I made and kept within 48 hours"}
+];
+
+
+/* ---------- Leading People: upgraded content ---------- */
+const STRONG = "strong", PART = "partial", RISKY = "risky";
+
+const EXT = {
+m0:{
+  scenario:{ setup:"The day your promotion is announced, Tasha, your closest friend on the team, messages you: “Congrats!! Guess we can't complain about the metrics in the group chat anymore lol.”",
+    ask:"Before you see any options: what would you actually type back?",
+    steps:[
+      {options:[
+        {t:"“Ha, I'll pretend I didn't see that 😂”", r:RISKY, reply:"“Lol knew you'd still be cool. Btw everyone thinks the new targets are ridiculous, you should tell them.”", fb:"It feels friendly, but you've signaled that the venting can continue as long as you look away. Now you're being recruited as the team's messenger, too."},
+        {t:"“Thank you! I'd really like to grab 20 minutes this week to talk about what changes and what stays the same.”", r:STRONG, reply:"“Oh. Okay, sure. Is this going to be weird now?”", fb:"Warm, direct, and it puts the reset conversation on the calendar while it's still easy. Her uncertainty is normal. You've given it somewhere to go."},
+        {t:"“Thanks! Let's try to keep the group chat positive, okay?”", r:PART, reply:"“Wow, okay boss 😅”", fb:"Setting the norm is right, but doing it in one line by text, on day one, lands as a rule rather than a relationship. Save the norm-setting for a real conversation."}
+      ]},
+      {setup:"Later that week, in your one-on-one, Tasha says: “Honestly, it feels like you're one of them now.”", options:[
+        {t:"“I'm still the same person. Nothing's really going to change between us.”", r:RISKY, fb:"Kind, but untrue, and she'll remember it the first time you give her feedback. Promising nothing changes sets up a feeling of betrayal later."},
+        {t:"“Some things will change. Sometimes I'll need to give you feedback, because that's my job now. What won't change is that I care about you and want you to do well. What worries you most about it?”", r:STRONG, fb:"Honest about what changes, clear about what stays, and it ends with a question. She gets to say what she's afraid of, and you get to hear it."},
+        {t:"“I hear that. Let's talk again once things settle down.”", r:PART, fb:"Listening is good, but delaying leaves the story “you're one of them” unanswered. Things don't settle down on their own."}
+      ]}],
+    debrief:"Strong new leaders name the change early, honestly, and warmly. They don't pretend nothing is different, and they don't go cold. The conversation is about the relationship as much as the rules."},
+  lab:{focus:"Starting the new job on purpose", checkin:"In one sentence: why did you say yes to leading people?",
+    clinic:"Each leader shares the relationship on their team they're most unsure about. Others ask questions before giving advice.",
+    triad:"Practice the former-peer reset conversation. The person playing the former peer is friendly but a little hurt and wonders if the leader will change.",
+    observe:["Opened with the relationship, not the rules","Was honest that some things will change","Named what stays the same","Asked a question and listened to the answer"],
+    commit:"Who will you have the reset conversation with this week, and when?"}
+},
+m1:{
+  scenario:{ setup:"Keisha, a nurse on your team, documents differently than you did. Her notes are slower and more thorough, and she finishes calls later in the day. Her monthly metrics are met.",
+    ask:"What, if anything, would you say to Keisha about this?",
+    steps:[
+      {options:[
+        {t:"Coach her to use your faster template so her day ends earlier.", r:RISKY, reply:"“Oh… sure. Is something wrong with my notes?”", fb:"This is “my way” in action. Her results are fine, so the change serves your preference, not her or the patients. She also learns that meeting the standard isn't enough with you."},
+        {t:"Ask what works for her about her approach.", r:STRONG, reply:"“Nobody's ever asked me that. I write everything out because I had a patient whose meds got mixed up once, and the detail is what caught it.”", fb:"You learn what she values and why. That's knowledge you'll need the next time you give her feedback."},
+        {t:"Say nothing. Her numbers are fine.", r:PART, reply:"She keeps working the way she always has. You never find out why she does it that way.", fb:"Not wrong, but it misses an easy chance to connect. Asking about someone's work without trying to change it builds trust quickly."}
+      ]},
+      {setup:"A few weeks later you notice two of Keisha's late-afternoon patients missed their calls this month because she ran out of time.", options:[
+        {t:"Tell her to switch to the faster template starting Monday.", r:PART, fb:"It may solve the missed calls, but it overrides something she values without asking. Expect quiet compliance, not commitment."},
+        {t:"Share what you noticed, then ask how she'd solve it while keeping what matters to her about her notes.", r:STRONG, fb:"You address the real risk (missed patients) and let her design the fix. She might move detailed notes to the end of the day or front-load complex calls. Her solution will stick better than yours."},
+        {t:"Quietly move those patients to another nurse.", r:RISKY, fb:"The patients get called, but Keisha never learns there was a problem, and another nurse absorbs extra work. Avoiding the conversation always costs someone."}
+      ]}],
+    debrief:"Connecting first doesn't mean ignoring problems. It means you know a person well enough that when a problem appears, you can solve it with them instead of around them."},
+  lab:{focus:"Connecting first", checkin:"What's one thing you learned about someone on your team that surprised you?",
+    clinic:"Each leader shares the team member they find hardest to connect with. Others ask: what do you know about what this person values?",
+    triad:"Practice a getting-to-know-you 1:1. The team member is polite but guarded and gives short answers at first.",
+    observe:["Asked open questions, not yes-or-no ones","Followed up on answers instead of moving to the next question","Talked less than half the time","Learned how the person likes to receive feedback"],
+    commit:"Which getting-to-know-you 1:1s will you finish before the next lab?"}
+},
+m2:{
+  scenario:{ setup:"End of week three. Your own patient panel numbers have dipped because you spent hours this week helping a nurse who was struggling. You feel behind.",
+    ask:"What would you do with how you feel right now?",
+    steps:[
+      {options:[
+        {t:"Stay late a few nights to get your own numbers back to where they used to be.", r:RISKY, reply:"By Thursday you're exhausted, and you're short with a nurse who asks you a simple question.", fb:"This pulls you back to the scoreboard you know how to win. It also teaches you that supporting people is extra work, when it's now the main work."},
+        {t:"Talk with your leader about panel expectations, and share what the support time produced.", r:STRONG, reply:"Your leader says: “Thanks for raising it. What did the time with her produce?”", fb:"Supporting a struggling nurse is leadership work. Your leader can help you balance it, and should know where your time goes."},
+        {t:"Cut back on 1:1s until your own numbers recover.", r:RISKY, reply:"Two weeks later, a nurse tells you she's been struggling with a patient for weeks but didn't want to bother you.", fb:"1:1s are usually the first thing to go and the most expensive to lose. Problems start reaching you later, which costs more time than it saves."}
+      ]},
+      {setup:"Your leader asks: “If not your own panel numbers, how will you know you're doing well as a leader?”", options:[
+        {t:"“When my team hits their monthly numbers.”", r:PART, fb:"True, but those are lag measures. You'll find out weeks after it's too late to change anything. You need something you can see and act on each week."},
+        {t:"“I'll track a few things each week that I control: 1:1s held, how quickly I address issues, whether problems reach me early. And I'll watch each person's trend.”", r:STRONG, fb:"That's a leader's scoreboard: lead measures you control weekly, plus the lag results they predict."},
+        {t:"“Honestly, I'm not sure yet.”", r:PART, fb:"Honest, which is good. Now build the answer together. Leaders without a new scoreboard drift back to the old one."}
+      ]}],
+    debrief:"The old scoreboard told you daily that you were good at your job. The new one has to be built on purpose: a few weekly actions you control that predict whether your team will succeed."},
+  lab:{focus:"Building a new scoreboard", checkin:"When did you last feel less capable this month? What was the job asking of you?",
+    clinic:"Each leader shares their three lead measures. Others ask: would this measure actually change what you do this week?",
+    triad:"Practice setting expectations. The team member thinks thoroughness matters more than completing scheduled calls and isn't sure what “good” looks like.",
+    observe:["Described what good looks like in specific terms","Explained why it matters for patients","Checked understanding by asking, not by asking “make sense?”","Agreed on when they'd check in"],
+    commit:"What will your weekly scoreboard track, starting this week?"}
+},
+m3:{
+  scenario:{ setup:"Priya, a newer nurse, messages you: “Patient hasn't sent BP readings in five days. What do I do?” You know the answer right away. The patient isn't in danger.",
+    ask:"What would you message back?",
+    steps:[
+      {options:[
+        {t:"Tell her the steps. It's faster.", r:PART, reply:"“Ok thanks!! 🙏”", fb:"Fast today. Next week she'll message again, and so will everyone who saw it work. Speed now becomes your workload later."},
+        {t:"“What have you tried so far, and what do you think the next step is?”", r:STRONG, reply:"“I called once and left a voicemail. I guess I could check if the device is syncing and try the alternate number?”", fb:"She already had most of the answer. Now she knows she did, and next time she may skip the message."},
+        {t:"Call the patient yourself so it's handled.", r:RISKY, reply:"“Oh thank you! I have three more like that, could you take those too? 😅”", fb:"The classic rescue. The patient gets a call, and Priya learns hard calls go up the chain."}
+      ]},
+      {setup:"Later that week, Priya brings you a problem she's never seen: a patient says the device readings don't match her home cuff. She asks, “What should I do?”", options:[
+        {t:"“What do you think is going on, and what would you try first?”", r:PART, fb:"Good instinct, but she may not have the knowledge yet. Pure questions with no knowledge behind them can feel like a quiz. Coaching isn't withholding."},
+        {t:"“Let's think it through. What do you know so far?” Then fill in what she doesn't know, and let her decide the next step.", r:STRONG, fb:"Ask first, teach where there's a real gap, then hand the decision back. That's coaching that builds skill instead of testing it."},
+        {t:"“Send it to me and I'll look into it.”", r:RISKY, fb:"You'll solve it, and she'll learn nothing about a problem she'll see again."}
+      ]}],
+    debrief:"Coaching means asking first, teaching when someone genuinely doesn't know, and handing the decision back. Rescuing feels helpful and teaches the team to wait for you.",
+    note:"Coaching is for growth moments. If a patient is at risk, act first and debrief afterward."},
+  lab:{focus:"Coaching instead of rescuing", checkin:"Share one entry from your rescue log.",
+    clinic:"Each leader shares a problem a team member brought them this week. The group practices coaching questions on it before anyone offers a solution.",
+    triad:"Practice a coaching moment. The team member asks for the answer to a clinical workflow question and is a little impatient.",
+    observe:["Asked at least two questions before giving any advice","Used “And what else?” or a similar follow-up","Taught only where there was a real knowledge gap","The team member chose the next step"],
+    commit:"Which decision will you hand back to your team this week?"}
+},
+m4:{
+  addPractice:[{id:"m4p5", t:"Read the Performance pathway and note where each current concern on your team sits.", s:"Most should be at the early check-in stage. That's the goal."}],
+  scenario:{ setup:"The month-end report shows Dana missed her monitoring-call target for the second month in a row: 82%, then 79%. The target is 95%. Your first thought: “She just doesn't care anymore.”",
+    ask:"What's your first move, and what would your opening line be?",
+    steps:[
+      {options:[
+        {t:"Send an email restating the expectation and a deadline for improvement.", r:RISKY, reply:"She replies: “Understood.” Her numbers don't change, and she stops speaking up in huddles.", fb:"This acts on the story. If something real is in the way, the email won't fix it, and she feels judged without being heard."},
+        {t:"Schedule a conversation this week, open with the numbers, and ask what's getting in the way.", r:STRONG, reply:"She says: “I know. I'm sorry. Things have just been a lot lately.”", fb:"Facts first, then curiosity. You'll either find a barrier you can help solve or have a fair basis for next steps."},
+        {t:"Give it one more month to see if it fixes itself.", r:RISKY, reply:"Next month she's at 71%. Two other nurses ask you why she gets a pass.", fb:"Waiting makes the conversation harder and tells the team that missing the standard has no effect."}
+      ]},
+      {setup:"In the conversation, Dana says: “Things have been a lot at home. I don't really want to get into it.”", options:[
+        {t:"“I understand. Let's just focus on the numbers then. You need to be at 95% next month.”", r:PART, fb:"Respecting her privacy is right, but you dropped the support and set a target without a plan. She leaves with the same problem and more pressure."},
+        {t:"“You don't have to share details. I want you to succeed here. Is there anything about your schedule or panel that would help right now? Then let's agree on what next month looks like.”", r:STRONG, fb:"You respect her privacy, offer real support, and still land on a clear plan. That's caring personally and challenging directly at the same time."},
+        {t:"“If you tell me what's going on, I can probably help.”", r:RISKY, fb:"Well-meant, but it pressures her to share private information. That's hers to decide, and pushing can create real problems for both of you."}
+      ]}],
+    debrief:"A missed number is a fact. “She doesn't care” is a story. Open with the fact, ask about the barrier, respect what's private, and still agree on a plan.",
+    note:"In patient care, \u201cnon-adherent\u201d often hides a barrier nobody has asked about. \u201cDoesn't care\u201d does the same thing to a nurse. Treat it as \u201cbarrier unknown\u201d until you've asked. If a team member mentions a health condition, a disability, or a need for leave, pause and bring in your director before taking further steps."},
+  lab:{focus:"Facts before stories", checkin:"What story did you catch yourself telling about someone this week?",
+    clinic:"Each leader shares a filled-in Conversation Planner. Others check: is the opening only facts? Is the story kept out of it?",
+    triad:"Practice a first performance conversation. The team member is defensive at first and has a real barrier they'll share only if they feel heard.",
+    observe:["Opened with facts, not interpretations","Asked for the team member's view before suggesting solutions","Acknowledged what they heard","Ended with a specific agreement and follow-up date"],
+    commit:"Which conversation will you hold within 48 hours of the lab?"}
+},
+m5:{
+  addLearn:[{h:"The performance pathway", src:"Program guidance", p:"Performance concerns move through clear stages: clear expectations, an early check-in, a pattern conversation, a written improvement plan, and an outcome. Most concerns should be resolved at the early check-in stage. The full pathway, with what to document and when to involve your director, is under Resources."}],
+  addPractice:[{id:"m5p5", t:"Use the documentation builder in the Performance pathway after your next check-in or pattern conversation."}],
+  scenario:{ setup:"Tasha, your closest friend on the team, has submitted documentation late three times this month. Others have noticed and are watching what you do.",
+    ask:"How would you open the conversation with Tasha?",
+    steps:[
+      {options:[
+        {t:"Bring it up casually during a personal chat so it doesn't feel like a big deal.", r:RISKY, reply:"“Haha I know, I'm the worst. I'll catch up this weekend!” Nothing changes.", fb:"Mixed into friendly conversation, it's easy to brush off, and it blurs what's personal and what's work."},
+        {t:"Ask for a private 1:1. Name the friendship, share the facts, ask what's happening, and agree on a plan.", r:STRONG, reply:"“Ugh. I knew this was coming. Honestly, I didn't think you'd actually say something.”", fb:"Naming the friendship lowers the awkwardness instead of pretending it isn't there. You're treating her like everyone else, which is what the team needs to see."},
+        {t:"Remind everyone about documentation deadlines at the team huddle.", r:RISKY, reply:"Everyone nods. Tasha messages you after: “Was that about me?”", fb:"Everyone on time feels scolded, Tasha knows it was about her, and the team sees you avoiding a direct conversation."}
+      ]},
+      {setup:"Three weeks after that first conversation, the late documentation continues. It's happened twice more.", options:[
+        {t:"Have another friendly reminder conversation.", r:RISKY, fb:"You're stuck at the first stage. Repeating the first conversation tells her, and the team, that there's no next step."},
+        {t:"Hold a pattern conversation: name that this is the second conversation about the same issue, agree on specific steps, send her a written summary, and let your director know.", r:STRONG, fb:"This is the next stage of the pathway. It's direct, transparent, and fair. She knows exactly where things stand and what happens next."},
+        {t:"Go straight to a written improvement plan.", r:PART, fb:"It skips the pattern conversation, so the plan may feel like a surprise. A written plan also needs your director's review first. Nothing in a written plan should be news."}
+      ]}],
+    debrief:"Holding a friend to the standard is fairness to everyone else who meets it. Name the friendship, stick to facts, move to the next stage when a pattern continues, and never let a formal step be a surprise."},
+  lab:{focus:"Holding the standard with people you like", checkin:"Who on your team are you most avoiding a conversation with?",
+    clinic:"Each leader places their current performance concerns on the pathway. The group checks: is anyone stuck at one stage too long?",
+    triad:"Practice a pattern conversation with a friend. The team member jokes, deflects, then says “I thought we were friends.”",
+    observe:["Named the friendship directly","Described the pattern with specific facts and dates","Stayed warm without softening the standard","Explained clearly what happens next"],
+    commit:"Which pathway step will you take before the next lab?"}
+},
+m6:{
+  scenario:{ setup:"Leah, a nurse on your team, tells you she forgot to escalate an abnormal reading yesterday. She caught it this morning, and the patient is fine.",
+    ask:"What's the first thing you'd say to Leah?",
+    steps:[
+      {options:[
+        {t:"Remind her firmly how serious this could have been and document it right away.", r:RISKY, reply:"She nods, eyes down. “Understood. It won't happen again.”", fb:"Accountability matters, but if telling you earns a reprimand first, next time you won't hear about it."},
+        {t:"Thank her for telling you, make sure the patient follow-up is complete, then ask what happened.", r:STRONG, reply:"“Thank you. Honestly, I almost didn't tell you. The alert came in during a busy stretch and got buried under new ones.”", fb:"Patient first, honesty rewarded, and now you're learning how it happened."},
+        {t:"Tell her not to worry about it since the patient is fine.", r:RISKY, reply:"“Okay, thanks!”", fb:"Kind, but it skips the learning and the safety process. Next time the outcome might be different."}
+      ]},
+      {setup:"Two other nurses mention the same thing has almost happened to them: alerts getting buried during busy stretches.", options:[
+        {t:"Remind the whole team to check alerts more carefully.", r:PART, fb:"Reasonable, but it treats a system problem as a people problem. Reminders fade; the workflow stays the same."},
+        {t:"Bring the pattern to your director and the team, ask the nurses what would keep alerts from getting buried, and follow your safety reporting process.", r:STRONG, fb:"This is just culture in practice: fix the system, involve the people closest to the work, and report through the right channel."},
+        {t:"Handle it privately with each nurse who mentioned it.", r:RISKY, fb:"Each conversation may go well, but the shared cause stays hidden and unfixed."}
+      ]}],
+    debrief:"How you respond to the first reported mistake decides whether you hear about the next one. Thank, protect the patient, fix the system, and use your reporting process.",
+    note:"Always follow your organization's patient safety and event reporting process."},
+  lab:{focus:"A team that tells you the truth", checkin:"When did someone bring you a problem early this month?",
+    clinic:"Leaders share their team pulse results. The group helps each one pick a single behavior to change.",
+    triad:"Practice responding to a reported mistake. The team member is anxious and expects to be in trouble.",
+    observe:["Thanked them for reporting before anything else","Confirmed patient safety follow-up","Explored causes without blame","Agreed on next steps, including reporting"],
+    commit:"What will you tell the cohort you've changed since Week 0? (Prepare it for graduation.)"}
+}
+};
+
+/* ---------- AI practice partner ---------- */
+const ROLEPLAYS = [
+ {id:"rp0", mod:"m0", title:"The former-peer reset", who:"Tasha", role:"Care nurse, 3 years on the team",
+  brief:"Tasha was your closest work friend before your promotion. You've asked her for 20 minutes to talk about how things change now that you lead the team.",
+  goal:"Name the change honestly, keep the relationship, and agree on one thing going forward.",
+  persona:"Tasha is warm, funny and well liked. She was the leader's closest friend at work and they vented together in the team group chat. She's happy for the leader but also a little hurt that she found out from the announcement, and worried the leader will change or start watching her.",
+  hidden:"Tasha also applied for the lead role and didn't get it. She hasn't told anyone. She will mention it only if the leader asks genuinely how she's feeling about the change and listens.",
+  skills:["Opened with the relationship","Was honest about what changes","Named what stays the same","Asked and listened","Agreed on one specific thing"]},
+ {id:"rp1", mod:"m1", title:"Getting-to-know-you 1:1", who:"Marcus", role:"Care nurse, 6 months on the team, former ICU nurse",
+  brief:"This is your first real 1:1 with Marcus since you became his leader. He's quiet in huddles and you don't know him well.",
+  goal:"Learn what he's good at, what he wants, what his work environment is like, and how he likes feedback.",
+  persona:"Marcus is polite, reserved and competent. He came from ICU night shift and works remotely with two young kids at home. He gives short answers until he feels the leader is genuinely interested.",
+  hidden:"Marcus feels isolated working remotely and has been quietly looking at other jobs. He misses the teamwork of the ICU. He'll share this only if the leader asks open questions, follows up, and doesn't rush to fix things.",
+  skills:["Asked open questions","Followed up on what he said","Listened more than talked","Learned how he likes feedback","Didn't rush to fix"]},
+ {id:"rp2", mod:"m2", title:"Setting clear expectations", who:"Jen", role:"Care nurse, 2 years on the team",
+  brief:"Jen completes about 85% of her scheduled monitoring calls. The expectation is 95%. She's never been told clearly what good looks like or why it matters.",
+  goal:"Make the expectation clear, explain why it matters for patients, check her understanding, and agree on a check-in.",
+  persona:"Jen is conscientious and spends long periods on calls with patients who want to talk. She believes thorough calls matter more than completing every scheduled call, and she's a little defensive about “numbers over patients.”",
+  hidden:"Jen doesn't realize that patients who miss their calls go a full month without contact, and some of them are the highest risk. If the leader explains this, she becomes much more open.",
+  skills:["Described what good looks like specifically","Explained why it matters for patients","Invited her perspective","Checked understanding","Agreed on a check-in"]},
+ {id:"rp3", mod:"m3", title:"A coaching moment", who:"Priya", role:"Care nurse, 4 months on the team",
+  brief:"Priya messages you asking what to do about a patient who keeps refusing to take daily readings. She wants the answer.",
+  goal:"Coach her to her own plan. Ask before telling, teach only where there's a real gap.",
+  persona:"Priya is eager, a little anxious, and used to asking for answers. She'll push gently for the leader to just tell her what to do.",
+  hidden:"Priya already suspects the patient finds the device confusing, but doesn't trust her own read. With a couple of good questions she'll get there herself.",
+  skills:["Asked before advising","Used a follow-up like “And what else?”","Taught only where needed","Let her choose the next step","Agreed on a follow-up"]},
+ {id:"rp4", mod:"m4", title:"The performance conversation", who:"Dana", role:"Care nurse, 4 years on the team",
+  brief:"Dana's monitoring-call completion was 82% last month and 79% this month. The target is 95%. She's been a solid performer for years.",
+  goal:"Open with facts, find out what's in the way, respect what's private, and agree on a specific plan with a follow-up date.",
+  persona:"Dana is experienced and proud of her work. She's defensive at first and may say the targets are unrealistic. She softens if the leader stays curious and doesn't accuse her.",
+  hidden:"Dana's panel was given 15 complex new patients two months ago, and she's been caring for a parent in the afternoons. She'll share the panel issue if asked about barriers. She'll share the family situation only if she feels safe, and may prefer not to give details.",
+  skills:["Opened with facts, not judgments","Asked for her view","Acknowledged what she shared","Respected privacy","Agreed on a specific plan and follow-up"]},
+ {id:"rp5", mod:"m5", title:"The pattern conversation with a friend", who:"Tasha", role:"Care nurse, your former closest work friend",
+  brief:"You already had one conversation with Tasha about late documentation three weeks ago. It has happened twice more since. This is the pattern conversation.",
+  goal:"Name the friendship, describe the pattern with facts, keep the standard, agree on steps, and explain transparently that you'll send a written summary and inform your director.",
+  persona:"Tasha jokes and deflects at first. If pressed, she becomes hurt and says something like “I thought we were friends.” She responds well to honesty delivered warmly.",
+  hidden:"Tasha has been taking on extra shifts elsewhere and is exhausted. She'll admit this if the leader stays warm and asks what's really going on.",
+  skills:["Named the friendship","Described the pattern with facts","Kept the standard while staying warm","Agreed on specific steps","Explained next steps transparently"]},
+ {id:"rp6", mod:"m6", title:"Responding to a reported mistake", who:"Leah", role:"Care nurse, 1 year on the team",
+  brief:"Leah has just told you she forgot to escalate an abnormal blood pressure reading yesterday. She caught it this morning, and the patient is fine.",
+  goal:"Thank her, confirm patient follow-up, explore causes without blame, and agree on next steps including reporting.",
+  persona:"Leah is anxious and expects to be in trouble. She apologizes repeatedly at first.",
+  hidden:"The alert arrived during a stretch of 20 new alerts in an hour, and the alert view doesn't distinguish urgent from routine. Other nurses have had near misses too. She'll explain this if the leader asks what happened without blaming her.",
+  skills:["Thanked her for reporting","Confirmed patient safety","Explored causes without blame","Agreed on next steps","Mentioned the reporting process"]}
+];
+
+const MODES = {
+  cooperative:"Cooperative: the nurse is open and fairly easy to talk to, though still realistic.",
+  realistic:"Realistic: the nurse responds like a typical person in this situation, with some hesitation or defensiveness.",
+  tough:"Tough: the nurse is guarded, defensive or emotional and makes the leader work for every bit of trust."
+};
+
+/* ---------- Performance pathway ---------- */
+const PATHWAY = [
+ {n:"Stage 0", t:"Clear expectations", when:"Before any concern, for everyone.", goal:"Everyone knows what good work looks like and why.",
+  do:["Write down what good looks like for the role: call completion, documentation timeliness, escalation, communication.","Explain why each matters for patients.","Make sure every person on the team has heard the same expectations."],
+  doc:"Your team expectations sheet.", who:"You."},
+ {n:"Stage 1", t:"Early check-in", when:"The first time you notice a missed standard. Within a few days.", goal:"Understand what's happening and solve it early.",
+  do:["Open with the facts, then ask what's getting in the way.","Offer support for real barriers.","Agree on what will happen next and a follow-up date."],
+  doc:"A short private note in your 1:1 notes: date, facts, what they shared, what you agreed.", who:"You and the team member."},
+ {n:"Stage 2", t:"Pattern conversation", when:"The same issue continues after the early check-in, or there's no improvement by the follow-up.", goal:"Make the pattern clear and agree on specific steps.",
+  do:["Name that this is the second conversation about the same issue.","Describe the pattern with specific facts and dates.","Agree on specific steps and a timeline. Explain what happens if it continues."],
+  doc:"A written summary sent to the team member after the conversation. Keep a copy.", who:"You and the team member. Tell your director the same day."},
+ {n:"Stage 3", t:"Written improvement plan", when:"The pattern continues after the pattern conversation.", goal:"A clear, fair, time-bound plan with support.",
+  do:["Your director reviews and approves the plan before the meeting.","Set specific, measurable goals, the support offered, weekly check-ins, and a timeframe.","State clearly what happens if goals aren't met."],
+  doc:"The signed plan and notes from every check-in.", who:"You and your director, with the team member."},
+ {n:"Stage 4", t:"Outcome", when:"End of the plan's timeframe.", goal:"Close the loop either way.",
+  do:["If goals are met: close the plan in writing and recognize the progress.","If not: your director decides the next steps.","Never make an employment decision on your own."],
+  doc:"A closing note on the plan.", who:"Your director decides; you participate."}
+];
+const ESCALATE = [
+ "A patient safety concern",
+ "Harassment, discrimination or retaliation, or a complaint about any of these",
+ "A possible policy violation, such as privacy or patient information",
+ "The team member mentions a health condition, disability, pregnancy, or a need for leave or an accommodation",
+ "Before any written improvement plan",
+ "Anything you're unsure about"
+];
+
+/* ---------- Before and after measurement ---------- */
+const SELF_SKILLS = [
+ "Building trust with each person on my team",
+ "Giving specific recognition",
+ "Giving corrective feedback promptly",
+ "Coaching instead of fixing",
+ "Separating facts from stories",
+ "Holding a performance conversation",
+ "Holding former peers to the same standard",
+ "Delegating with a clear outcome",
+ "Knowing how to measure my success as a leader",
+ "Making it safe to bring me bad news"
+];
+const PULSE_Q = [
+ "My leader gives me feedback that helps me improve.",
+ "My leader recognizes good work specifically.",
+ "I can bring problems or mistakes to my leader without fear.",
+ "My leader follows through on what they say they'll do.",
+ "My leader treats everyone on the team fairly and consistently.",
+ "I know what's expected of me and what good work looks like.",
+ "My leader helps me solve problems instead of solving them for me.",
+ "My leader cares about me as a person.",
+ "My leader addresses performance concerns on the team promptly.",
+ "I would recommend my leader to a colleague."
+];
+const PULSE_OPEN = ["What should your leader keep doing?","What's one thing your leader could do differently?"];
+
+/* ---------- merge ---------- */
+FT_MODULES.forEach(m=>{
+  const x = EXT[m.id]; if(!x) return;
+  m.scenario = x.scenario; m.lab = x.lab;
+  if(x.scenario.note) m.note = x.scenario.note; else delete m.note;
+  if(x.addPractice) m.practice = m.practice.concat(x.addPractice);
+  if(x.addLearn) m.learn = m.learn.concat(x.addLearn);
+  m.roleplay = ROLEPLAYS.find(r=>r.mod===m.id);
+});
+
+const P = {
+  key:"leader-onboarding-v1",
+  passage:1,
+  sponsorName:"your leader",
+  sponsorPlaceholder:"Who you'll meet with weekly",
+  header:{eyebrow:"Leadership onboarding · First-time leader",
+    h1a:"A promotion is a new job.", h1b:"Onboard it like one.",
+    p:"A self-guided protocol for people leading a team for the first time, built around five things a promotion takes away and what to learn in their place. Work through it with your leader over roughly twelve weeks."},
+  hero:{eyebrow:"First-time leader protocol",
+    h2a:"You were promoted for being great at the work.", h2b:"Now the work is people.",
+    p:["Most leadership onboarding covers systems, reports and workflows. This program covers the rest: how to connect with people, build trust, coach instead of rescue, and hold prompt, fair performance conversations that help people succeed.","It applies whether you were promoted from within or hired from outside. If you were promoted from your own team, Week 0 and Module 5 matter most."]},
+  measuresTitle:"Choose your three lead measures",
+  measures:FT_MEASURES,
+  modules:FT_MODULES,
+  tools:[
+    {type:"planner", title:"Conversation planner",
+     lede:"Fill this in before any performance conversation. It separates what you know from the story you're telling yourself, based on Crucial Conversations.",
+     fields:[
+       {key:"fact", label:"The facts: what did you see or hear?", ph:"Monitoring calls at 82% in September and 79% in October; the target is 95%.", blank:"what you saw or heard"},
+       {key:"story", label:"The story you're telling yourself", ph:"She's checked out since the panel change.", blank:"your story"},
+       {key:"want", label:"What do you really want? For them, for you, for the relationship", ph:"For her to be back on track and to feel she can tell me when something's in the way.", blank:"for them, for me, for our working relationship"},
+       {key:"next", label:"Agreed next steps (fill in after)", blank:"what each of us will do, and by when"},
+       {key:"follow", label:"Follow-up date", input:true, ph:"e.g. Thursday the 23rd", blank:"within two weeks"}
+     ],
+     note:"The story stays out of the opening. You'll test it by asking, not by stating it.",
+     template:"OPENING\n“I wanted to talk with you about something I noticed. {fact}. I don't know the full story yet, and I'd like to hear your side before I assume anything.”\n\nWHAT I WANT\n{want}\n\nQUESTIONS TO ASK\n• What's been getting in the way?\n• What do you think would help?\n• And what else?\n• What do you need from me?\n\nAGREED NEXT STEPS\n{next}\n\nFOLLOW-UP DATE\n{follow}"},
+    {type:"braving", lede:"Rate yourself honestly on Brené Brown's seven elements of trust, from 1 (rarely) to 5 (consistently). Retake it at the end of the program."},
+    {type:"list", title:"Getting-to-know-you 1:1 questions", lede:"For Module 1. Listen more than you talk, and take notes after, not during.", items:[
+      "What do you enjoy most about your work here? What drains you?",
+      "What are you best at that people might not know about?",
+      "What does a really good workday look like for you?",
+      "Is there anything about your situation or work environment you'd like me to know, so I can support you?",
+      "Where do you want to grow in the next year?",
+      "How do you like to receive feedback: in the moment, written, in a 1:1?",
+      "What did I do as a peer that you'd like me to keep doing? Anything you'd like me to stop?",
+      "What's one thing that would make your job easier right now?"]},
+    {type:"list", title:"Former-peer reset conversation", lede:"For Weeks 0 to 1, with anyone you were close to. Keep it short and warm. The goal is to name the change before a hard moment forces it.", items:[
+      "<b>Open with the relationship.</b> “Our friendship matters to me, and I want to talk about how this change affects us.”",
+      "<b>Name what changes.</b> “I'm now responsible for the team's results, which means sometimes I'll need to give you feedback, including about things I used to joke about with you.”",
+      "<b>Name what stays.</b> “I'll still have your back, and I still want to hear what you think.”",
+      "<b>Ask.</b> “How are you feeling about it? What would help this feel okay?”",
+      "<b>Agree on one thing.</b> For example: venting goes somewhere other than the team chat, or concerns come to you directly."]},
+    {type:"list", title:"Weekly 1:1 template", lede:"Their meeting, not yours. Keep it even in busy weeks.", items:[
+      "<b>Their topics first.</b> What's on your mind?",
+      "<b>Wins.</b> Name one specific thing they did well.",
+      "<b>Barriers.</b> What's getting in the way? What have you tried?",
+      "<b>Growth.</b> Progress on the goal they named.",
+      "<b>Your follow-ups.</b> What you owe them from last week, done or not."]}
+  ],
+  books:[
+    ["Crucial Conversations","Patterson, Grenny, McMillan, Switzler. Modules 4 and 5."],
+    ["Crucial Accountability","Grenny, Patterson et al. Module 5."],
+    ["Dare to Lead","Brené Brown. Modules 1 and 4."],
+    ["Leaders Eat Last","Simon Sinek. Modules 0 and 1."],
+    ["Becoming a Manager","Linda Hill. Modules 0 and 2."],
+    ["The First 90 Days","Michael Watkins. Module 0."],
+    ["The Coaching Habit","Michael Bungay Stanier. Module 3."],
+    ["Multipliers","Liz Wiseman. Module 3."],
+    ["Radical Candor","Kim Scott. Module 1."],
+    ["The Fearless Organization","Amy Edmondson. Module 6."],
+    ["The 4 Disciplines of Execution","McChesney, Covey, Huling. Module 2."],
+    ["The Five Dysfunctions of a Team","Patrick Lencioni. Module 5."]
+  ],
+  sponsor:{railSub:"Guide for their leader", eyebrow:"For the new leader's leader", title:"Your role as <em>sponsor</em>", sub:"The program works when someone walks it with them",
+    why:"The person you promoted has the hardest version of the transition: a peer on Friday, accountable for friends by the end of the month. Your weekly time is the most important part of this program. Model what you want them to learn, especially by not rescuing them.",
+    commit:"A 30-minute weekly 1:1 for twelve weeks, one role-play before their first performance conversation, and a 90-day review. Pair them with a peer thought partner from another team.",
+    steps:[
+      {id:"sp1", t:"Before day one: tell them why you chose them", s:"Name specific strengths and one growth area. Plan how the team will hear the news, and introduce the change yourself."},
+      {id:"sp2", t:"Week 1: assign a peer thought partner", s:"Another leader they can process frustrations with, so venting doesn't go to their team."},
+      {id:"sp3", t:"Weeks 1 to 12: hold the weekly 1:1", s:"Use the “For your 1:1” prompts at the end of each module."},
+      {id:"sp4", t:"Before their first performance conversation: role-play it", s:"Play the team member first, then switch. Debrief within a day of the real conversation."},
+      {id:"sp5", t:"Week 12: hold the 90-day review", s:"Review their Week 0 outcomes, scoreboard and team pulse. Agree on the next quarter's development focus."}],
+    watch:[
+      ["Still doing the team's work","Long hours, their own panel at full volume, fixing every escalation. Ask about their rescue log."],
+      ["Avoiding one person","Usually a former friend. Ask directly who they haven't given feedback to yet."],
+      ["Only talking about numbers","If 1:1s with you are all metrics, theirs probably are too. Ask what they've learned about each person."],
+      ["Going quiet","New leaders often hide struggles from the person who promoted them. Normalize it: share a time you struggled in your first year."]]}
+};
+
+/* ---------- Leading People: adjustments to the shared protocol settings ---------- */
+P.key = "leader-onboarding-v1";
+P.hero.p = [
+  "Most leadership onboarding covers systems, reports and workflows. This program covers the rest: how to connect with people, build trust, coach instead of rescue, and hold prompt, fair performance conversations that help people succeed.",
+  "You won't just read about it. Every module has a scenario to work through, a real conversation to practice with an AI partner who plays a nurse on your team, and a live lab with other new leaders where you practice with each other. You'll measure your growth from Week 0 to Week 12."
+];
+P.steps = [
+  ["Read and decide","About 20 minutes of ideas, then a two-step scenario where you type what you'd say before seeing the options."],
+  ["Practice the conversation","Open the Practice studio and hold the module's key conversation with an AI partner. Get scored feedback."],
+  ["Practice with your cohort","Every two weeks, a 60-minute leader lab. Practice in groups of three with an observer."],
+  ["Do it for real","Use the skill in your real work, reflect on it, and bring it to your 1:1 with your leader."]
+];
+P.sponsor.commit = "A 30-minute weekly 1:1 for twelve weeks, the leader lab every two weeks (run it yourself or assign a senior lead), sending the anonymous team pulse in Week 0 and Week 12, and a 90-day review.";
+P.sponsor.steps = [
+  {id:"sp1", t:"Before day one: tell them why you chose them", s:"Name specific strengths and one growth area. Plan how the team will hear the news, and introduce the change yourself."},
+  {id:"sp6", t:"Week 0: send the anonymous team pulse", s:"Use the questions on the My growth page. Wait for at least four responses, then share the averages with the new leader."},
+  {id:"sp2", t:"Week 1: assign a peer thought partner", s:"Another leader they can process frustrations with, so venting doesn't go to their team."},
+  {id:"sp7", t:"Every two weeks: run the leader lab", s:"Follow the Leader lab guide. Each module page has that session's agenda."},
+  {id:"sp3", t:"Weeks 1 to 12: hold the weekly 1:1", s:"Use the “For your 1:1” prompts at the end of each module."},
+  {id:"sp4", t:"Before their first performance conversation: role-play it", s:"Play the team member first, then switch. Debrief within a day of the real conversation."},
+  {id:"sp8", t:"Before any written improvement plan: review it with them", s:"Use the Performance pathway. Nothing in a written plan should be news to the team member."},
+  {id:"sp9", t:"Week 12: send the team pulse again", s:"Same questions, same process, so the results compare fairly."},
+  {id:"sp5", t:"Week 12: hold the 90-day review", s:"Review their Week 0 outcomes, scoreboard, practice scores and the before-and-after pulse."}
+];
+P.tools[0].id = "conv"; P.tools[0].prefix = "";
+P.docTool = {type:"planner", id:"doc", prefix:"doc_", title:"Documentation builder",
+  lede:"Fill this in right after an early check-in, pattern conversation or improvement plan check-in. It produces a factual summary you can keep and, for pattern conversations, send to the team member.",
+  fields:[
+    {key:"date", label:"Date and type of conversation", input:true, ph:"Oct 14, pattern conversation", blank:"date and type"},
+    {key:"facts", label:"The facts: metrics, dates, observations", ph:"Documentation submitted late on Sept 22, Oct 3 and Oct 9. Expectation: within 24 hours of the call.", blank:"facts"},
+    {key:"prior", label:"Earlier conversations about this", ph:"Early check-in on Sept 24.", blank:"none"},
+    {key:"view", label:"Their perspective, in their words", ph:"Said she's been stretched thin and losing track at the end of the day.", blank:"their perspective"},
+    {key:"support", label:"Support offered", ph:"End-of-day documentation block on her calendar; weekly check-in for a month.", blank:"support offered"},
+    {key:"agree", label:"What we agreed", ph:"All documentation within 24 hours. She'll flag any day she can't by 4 p.m.", blank:"agreed actions"},
+    {key:"next", label:"What happens next", ph:"Follow-up on Oct 28. If the pattern continues, the next step is a written improvement plan with our director.", blank:"next step"}
+  ],
+  note:"Write facts, not labels. Leave out guesses about health or personal life. Write it as if the team member will read it, because for a pattern conversation they will.",
+  template:"CONVERSATION SUMMARY\n{date}\n\nWHAT WE DISCUSSED\n{facts}\n\nEARLIER CONVERSATIONS\n{prior}\n\nYOUR PERSPECTIVE\n{view}\n\nSUPPORT OFFERED\n{support}\n\nWHAT WE AGREED\n{agree}\n\nWHAT HAPPENS NEXT\n{next}"};
+
+/* ---------------- ENGINE: Leading People (upgraded) ---------------- */
+const PASSAGES = ["Leading yourself","Leading people","Leading leaders","Leading a function","Leading a business","Leading the enterprise"];
+const BRAVING = [
+  ["Boundaries","I'm clear about what's okay and not okay, and I respect others' limits."],
+  ["Reliability","I do what I say I'll do, consistently."],
+  ["Accountability","I own my mistakes and make them right."],
+  ["Vault","I keep confidences and don't share what isn't mine to share."],
+  ["Integrity","I choose what's right over what's easy or fast."],
+  ["Non-judgment","People can ask me for help without fear of being judged."],
+  ["Generosity","I assume the most generous explanation for others' actions."]
+];
+const MODULES = P.modules;
+const LS_KEY = P.key;
+const RATING = {strong:["Strong move","good"], partial:["Partly works","mid"], risky:["Risky","bad"]};
+function blankState(){ return {checks:{},notes:{},picks:{},braving:{},planner:{},me:{},rp:{},rpSel:"rp0",shared:{refl:{},rp:{}},growth:{self0:{},self12:{},pulse0:{},pulse12:{},n0:"",n12:""}}; }
+let state = Object.assign(blankState(), {updatedAt:0});
+let view = {sec:"overview"};
+let ref = null, mode = "device", writing = false, pending = false, timer = null;
+let sampler = null, samplerState = "pending", rpBusy = false, rpCtl = null;
+let sumRef = null, lastSum = "", isOwner = false, userNs = null, cohortDocs = [], cohortNames = {}, dashSel = null, dashCohort = "";
+
+function normalize(){
+  const b = blankState();
+  for(const k in b){ if(state[k]==null) state[k] = b[k]; }
+  for(const k in b.growth){ if(state.growth[k]==null) state.growth[k] = b.growth[k]; }
+  if(!state.shared.refl) state.shared.refl = {}; if(!state.shared.rp) state.shared.rp = {};
+  for(const k in state.picks){ if(typeof state.picks[k] !== "object" || state.picks[k]===null) delete state.picks[k]; }
+}
+function loadLocal(){ try{ const s = localStorage.getItem(LS_KEY); if(s){ Object.assign(state, JSON.parse(s)); } }catch(e){} normalize(); }
+function saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+function setStatus(){
+  const el = document.getElementById("status"); if(!el) return;
+  el.className = "status" + (mode==="account" ? " ok" : "");
+  el.querySelector("span").textContent = mode==="account" ? "Progress saves to your account" : "Progress saves on this device only";
+}
+function save(){ state.updatedAt = Date.now(); saveLocal(); if(!ref) return; clearTimeout(timer); timer = setTimeout(flush, 1200); }
+async function flush(){
+  if(!ref) return;
+  if(writing){ pending = true; return; }
+  writing = true;
+  try{
+    await ref.set(JSON.parse(JSON.stringify(state)));
+    if(sumRef){ const sum = JSON.stringify(buildSummary()); if(sum!==lastSum){ try{ await sumRef.set(JSON.parse(sum)); lastSum = sum; }catch(e2){ if(e2 && e2.code==="invalid_argument") sumRef = null; } } }
+  }
+  catch(e){ if(e && (e.code==="invalid_argument" || e.code==="revoked" || e.code==="not_granted")){ ref=null; mode="device"; setStatus(); } }
+  writing = false;
+  if(pending){ pending=false; flush(); }
+}
+async function connect(){
+  if(!window.claude || !window.claude.use){ samplerState = "none"; refreshStudio(); return; }
+  window.claude.use("sample").then(s=>{ sampler = s; samplerState = s ? "ready" : "none"; refreshStudio(); }).catch(()=>{ samplerState="none"; refreshStudio(); });
+  try{
+    const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if(!db || !user) return;
+    const uid = await user.id();
+    if(!uid) return;
+    const r = db.doc("data/users/" + uid + "/progress");
+    sumRef = db.doc("progress/" + uid); userNs = user;
+    try{ isOwner = !!(await user.isOwner()); }catch(e){ isOwner = false; }
+    if(isOwner) watchCohort(db);
+    const snap = await r.get();
+    if(snap.exists){
+      const d = snap.data();
+      if((d.updatedAt||0) > (state.updatedAt||0)){ state = Object.assign(blankState(), JSON.parse(JSON.stringify(d))); normalize(); saveLocal(); }
+    }
+    ref = r; mode = "account"; setStatus(); if(!rpBusy) render();
+    if(state.updatedAt) flush();
+  }catch(e){}
+}
+function refreshStudio(){ if(view.sec==="studio" && !rpBusy) render(); }
+
+/* ---------------- HELPERS ---------------- */
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const rpAvg = fb => fb && fb.scores && fb.scores.length ? Math.round(fb.scores.reduce((a,s)=>a+(Number(s.score)||0),0)/fb.scores.length*10)/10 : null;
+function modProgress(m){
+  let done = 0, total = m.practice.length + m.reflect.length + 1 + (m.roleplay?1:0);
+  m.practice.forEach(p=>{ if(state.checks[p.id]) done++; });
+  m.reflect.forEach(r=>{ if((state.notes[r.id]||"").trim()) done++; });
+  const pk = state.picks[m.id]; if(pk && pk.s1!=null) done++;
+  if(m.roleplay && state.rp[m.roleplay.id] && state.rp[m.roleplay.id].fb) done++;
+  return {done, total, pct: Math.round(done/total*100)};
+}
+function overall(){ let d=0,t=0; MODULES.forEach(m=>{ const p=modProgress(m); d+=p.done; t+=p.total; }); return Math.round(d/t*100); }
+function ring(pct){
+  const r = 15.5, c = 2*Math.PI*r, off = c*(1-pct/100);
+  return `<svg class="ring" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="${r}" fill="none" stroke="var(--line)" stroke-width="4"/><circle cx="18" cy="18" r="${r}" fill="none" stroke="var(--good)" stroke-width="4" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}" transform="rotate(-90 18 18)"/></svg>`;
+}
+const checkRow = (id, t, s) => `<label class="check ${state.checks[id]?"done":""}"><input type="checkbox" data-check="${id}" ${state.checks[id]?"checked":""}><span>${t}${s?`<small>${s}</small>`:""}</span></label>`;
+
+/* ---------------- LAYOUT ---------------- */
+function renderHeader(){
+  document.getElementById("hdr").innerHTML = `
+    <div class="brand">
+      <div class="eyebrow">${P.header.eyebrow}</div>
+      <h1>${P.header.h1a} <span>${P.header.h1b}</span></h1>
+      <p>${P.header.p}</p>
+    </div>
+    <div class="status" id="status" role="status"><i></i><span>Loading your progress…</span></div>`;
+  document.getElementById("ladder").innerHTML = PASSAGES.map((p,i)=>`<span class="${i===P.passage?"on":""}">${i===P.passage?"This protocol: ":""}${p}</span>`).join("");
+}
+function renderRail(){
+  const item = (id, t, w, pct) => `<button data-sec="${id}" aria-current="${view.sec===id}"><span class="rt">${t}</span>${w?`<span class="rw">${w}</span>`:""}${pct!=null?ring(pct):""}</button>`;
+  const rpDone = ROLEPLAYS.filter(r=>state.rp[r.id] && state.rp[r.id].fb).length;
+  document.getElementById("rail").innerHTML =
+    `<div class="grp">Start here</div>` + item("overview","Program overview","How it works", overall()) + item("growth","My growth","Week 0 and Week 12") + (isOwner ? item("dashboard","Cohort dashboard", cohortDocs.length+" leaders") : "") +
+    `<div class="grp">Modules</div>` + MODULES.map(m=>item(m.id, m.short, m.weeks, modProgress(m).pct)).join("") +
+    `<div class="grp">Practice</div>` + item("studio","Practice studio", rpDone+" of "+ROLEPLAYS.length+" conversations") + item("lab","Leader lab guide","Cohort sessions") +
+    `<div class="grp">Resources</div>` + item("pathway","Performance pathway","Stages and documentation") + item("toolkit","Toolkit","Planners and guides") + item("sponsor","For your leader","Sponsor guide");
+}
+function render(){
+  renderRail();
+  const c = document.getElementById("content");
+  const pages = {overview:renderOverview, toolkit:renderToolkit, sponsor:renderSponsor, studio:renderStudio, lab:renderLab, pathway:renderPathway, growth:renderGrowth, dashboard:renderDashboard};
+  c.innerHTML = pages[view.sec] ? pages[view.sec]() : renderModule(MODULES.find(m=>m.id===view.sec) || MODULES[0]);
+  if(view.sec==="studio"){ const log=document.getElementById("chat-log"); if(log) log.scrollTop = log.scrollHeight; }
+}
+
+/* ---------------- OVERVIEW ---------------- */
+function renderOverview(){
+  const pct = overall();
+  const segs = MODULES.map((m,i)=>{
+    const span = m.wk[1]-m.wk[0]+1, cls = i===0 ? "zero" : (i===MODULES.length-1 ? "cap" : "");
+    return `<button class="tl-seg ${cls}" style="grid-column:${m.wk[0]+1} / span ${span}" data-sec="${m.id}">${m.short}<small>${modProgress(m).pct}% done</small></button>`;
+  }).join("");
+  const wks = Array.from({length:13},(_,i)=>`<div class="tl-wk">Wk ${i}</div>`).join("");
+  return `
+  <div class="hero">
+    <div class="eyebrow">${P.hero.eyebrow}</div>
+    <h2>${P.hero.h2a} <span>${P.hero.h2b}</span></h2>
+    ${P.hero.p.map(x=>`<p>${x}</p>`).join("")}
+  </div>
+  <div class="steps">${P.steps.map((s,i)=>`<div class="step"><b>${i+1}. ${s[0]}</b><p>${s[1]}</p></div>`).join("")}</div>
+  <section class="blk">
+    <h3>Your twelve weeks</h3>
+    <p class="lede">Select any module to open it. Start with the self-assessment on the My growth page so you can see how far you've come at the end.</p>
+    <div class="tl-wrap"><div class="tl-inner"><div class="timeline">${wks}</div><div class="timeline">${segs}</div></div></div>
+  </section>
+  <section class="blk">
+    <h3>Your details</h3>
+    <div class="bigpct">${ring(pct)}<div><b>${pct}% complete</b><span class="note">Counts scenarios, practice conversations, practice items and reflections.</span></div></div>
+    <div class="me">
+      <label for="me-name">Your name<input type="text" id="me-name" data-me="name" value="${esc(state.me.name)}" placeholder="First and last name"></label>
+      <label for="me-start">Start date in role<input type="date" id="me-start" data-me="start" value="${esc(state.me.start)}"></label>
+      <label for="me-lead">Your leader<input type="text" id="me-lead" data-me="leader" value="${esc(state.me.leader)}" placeholder="${P.sponsorPlaceholder}"></label>
+      <label for="me-cohort">Your cohort<input type="text" id="me-cohort" data-me="cohort" value="${esc(state.me.cohort)}" placeholder="e.g. Fall 2026 cohort"></label>
+    </div>
+  </section>
+  <section class="blk"><div class="visible"><span class="tag">What your program leader can see</span>
+    <div class="vis-grid"><div><b>Shared automatically</b><ul class="plain"><li>Your name, cohort and progress through each module</li><li>Your scenario answers: what you typed first and the options you chose</li><li>Your Practice studio scores and coach feedback</li><li>Your self-assessment and team pulse numbers</li></ul></div>
+    <div><b>Private unless you choose to share</b><ul class="plain"><li>Your reflections. Each has its own share button.</li><li>Your full practice conversations. Share one from the Practice studio after you get feedback.</li><li>Your planners, notes and trust self-check</li></ul></div></div>
+    <p class="note">Your program leader uses this to plan the leader labs and support you. It isn't a performance evaluation.</p></div></section>
+  <div class="pager"><button class="btn" data-sec="growth">Take the Week 0 self-assessment</button><button class="btn primary" data-sec="m0">Start with Week 0 →</button></div>`;
+}
+
+/* ---------------- MODULE ---------------- */
+function renderScenario(m){
+  const scn = m.scenario, pk = state.picks[m.id] || {};
+  let html = `<p class="setup">${scn.setup}</p>
+    <div><label for="say-${m.id}" class="say-l">${scn.ask}</label><textarea id="say-${m.id}" data-say="${m.id}" placeholder="Type it the way you'd actually say it.">${esc(pk.say)}</textarea></div>`;
+  if(!pk.open){ return html + `<div><button class="btn" data-reveal="${m.id}">Show the options →</button></div>`; }
+  scn.steps.forEach((st,si)=>{
+    if(si>0 && pk["s"+(si-1)]==null) return;
+    const chosen = pk["s"+si];
+    if(st.setup) html += `<p class="setup step2">${st.setup}</p>`;
+    html += `<div class="opts">${st.options.map((o,k)=>{
+      const cls = chosen===k ? "picked "+RATING[o.r][1] : (chosen!=null ? "dim" : "");
+      return `<button class="opt ${cls}" data-pick="${m.id}" data-step="${si}" data-k="${k}" ${chosen!=null?"disabled":""}>${o.t}</button>`;
+    }).join("")}</div>`;
+    if(chosen!=null){
+      const o = st.options[chosen];
+      html += `<div class="fb"><span class="rate ${RATING[o.r][1]}">${RATING[o.r][0]}</span> ${o.fb}</div>`;
+      if(o.reply) html += `<div class="reply"><span class="eyebrow">What happens</span><p>${o.reply}</p></div>`;
+      if(o.r!=="strong"){ const best = st.options.find(x=>x.r==="strong"); html += `<p class="note"><b>A stronger move:</b> ${best.t}</p>`; }
+    }
+  });
+  if(pk.s1!=null){
+    html += `<div class="debrief"><span class="tag">What strong leaders do here</span><p>${scn.debrief}</p></div>`;
+    if((pk.say||"").trim()) html += `<p class="note">Compare it with what you wrote at the start. What would you change?</p>`;
+    html += `<div><button class="btn" data-reset="${m.id}">Try the scenario again</button></div>`;
+  }
+  if(scn.note) html += `<p class="note">${scn.note}</p>`;
+  return html;
+}
+function renderRpCard(rp){
+  const st = state.rp[rp.id], avg = st && st.fb ? rpAvg(st.fb) : null;
+  return `<div class="rpcard"><div class="rpc-main"><span class="eyebrow">Practice with ${rp.who} · ${rp.role}</span><h4>${rp.title}</h4><p>${rp.brief}</p><p class="note"><b>Your goal:</b> ${rp.goal}</p></div>
+    <div class="rpc-side">${avg!=null?`<div class="score"><b>${avg}</b><span>last score of 3</span></div>`:""}<button class="btn primary" data-rp="${rp.id}">${st && st.turns && st.turns.length ? "Continue in the studio" : "Start practicing"} →</button></div></div>`;
+}
+function renderLabBlock(m){
+  const l = m.lab;
+  return `<div class="lab"><div class="lab-head"><span class="tag">Leader lab</span><h3>${l.focus}</h3><p class="note">60 minutes with your cohort. Your facilitator runs it using the Leader lab guide.</p></div>
+    <ol class="agenda">
+      <li><span class="min">10 min</span><div><b>Check-in round</b><p>${l.checkin}</p></div></li>
+      <li><span class="min">15 min</span><div><b>Challenge clinic</b><p>${l.clinic}</p></div></li>
+      <li><span class="min">25 min</span><div><b>Practice in threes</b><p>${l.triad}</p><p class="note">Rotate roles: leader, team member, observer. Observers score each item 1 (not yet), 2 (partly), 3 (strong):</p><ul class="obs">${l.observe.map(x=>`<li>${x}</li>`).join("")}</ul></div></li>
+      <li><span class="min">10 min</span><div><b>Commitments</b><p>${l.commit}</p></div></li>
+    </ol></div>`;
+}
+function renderModule(m){
+  const p = modProgress(m), i = MODULES.indexOf(m);
+  const measures = m.measures ? `<div class="card" style="margin-top:12px"><h4>${P.measuresTitle}</h4><div class="checks">${P.measures.map(x=>checkRow(x.id,x.t)).join("")}</div></div>` : "";
+  return `
+  <div class="mhead">
+    <div class="eyebrow">${m.weeks} · ${m.eyebrow}</div>
+    <h2>${m.title}</h2>
+    <div class="sub">${m.sub}</div>
+    <div class="bar" aria-label="Module progress"><span style="width:${p.pct}%"></span></div>
+  </div>
+  <div class="pair">
+    <div class="panel peach"><span class="tag">What changes</span><p>${m.changes}</p></div>
+    <div class="panel sky"><span class="tag">The shift</span><dl class="shift"><dt>From</dt><dd>“${m.from}”</dd><dt>To</dt><dd class="to">“${m.to}”</dd></dl></div>
+  </div>
+  <section class="blk"><h3>1. Learn</h3><p class="lede">Ideas from leaders and researchers worth knowing at this stage.</p>
+    <div class="learn">${m.learn.map(l=>`<div class="card"><h4>${l.h}</h4><span class="src">${l.src}</span><p>${l.p}</p></div>`).join("")}</div></section>
+  <section class="blk"><h3>2. Work the scenario</h3><p class="lede">Write what you'd actually say first. Then choose, see what happens, and handle what comes next.</p>
+    <div class="scn" id="scn-${m.id}">${renderScenario(m)}</div></section>
+  ${m.roleplay?`<section class="blk"><h3>3. Practice the conversation</h3><p class="lede">Hold this conversation with an AI partner who plays a nurse on your team, then get feedback on each skill.</p>${renderRpCard(m.roleplay)}</section>`:""}
+  <section class="blk"><h3>4. Do it for real</h3><p class="lede">Use these in your real work over the next two weeks.</p>
+    <div class="checks">${m.practice.map(x=>checkRow(x.id,x.t,x.s)).join("")}</div>${measures}</section>
+  <section class="blk"><h3>5. Practice with your cohort</h3>${renderLabBlock(m)}</section>
+  <section class="blk"><h3>6. Reflect</h3><p class="lede">Private to you unless you choose to share a reflection with your program leader.</p>
+    <div class="ref">${m.reflect.map(r=>`<div><label for="${r.id}">${r.q}</label><textarea id="${r.id}" data-note="${r.id}">${esc(state.notes[r.id])}</textarea><div class="sharebar" id="sb-${r.id}">${shareBar(r.id)}</div></div>`).join("")}</div></section>
+  <section class="blk"><div class="checkin"><h3>For your 1:1 with your leader</h3><ul>${m.checkin.map(x=>`<li>${x}</li>`).join("")}</ul></div></section>
+  <div class="pager">
+    ${i>0?`<button class="btn" data-sec="${MODULES[i-1].id}">← ${MODULES[i-1].short}</button>`:`<button class="btn" data-sec="overview">← Overview</button>`}
+    ${i<MODULES.length-1?`<button class="btn primary" data-sec="${MODULES[i+1].id}">${MODULES[i+1].short} →</button>`:`<button class="btn primary" data-sec="growth">Measure your growth →</button>`}
+  </div>`;
+}
+
+/* ---------------- PRACTICE STUDIO ---------------- */
+function rpState(id){ if(!state.rp[id]) state.rp[id] = {mode:"realistic", turns:[], fb:null, history:[]}; return state.rp[id]; }
+function renderStudio(){
+  const rp = ROLEPLAYS.find(r=>r.id===state.rpSel) || ROLEPLAYS[0], st = rpState(rp.id);
+  const m = MODULES.find(x=>x.id===rp.mod);
+  const avail = samplerState==="ready" ? "" : `<div class="warn">${samplerState==="pending" ? "Connecting the practice partner…" : "The practice partner works when this page is open in Claude. You can still practice this conversation with a colleague: one plays the nurse using the description above, one observes using the skills list."}</div>`;
+  const log = st.turns.map(t=>`<div class="msg ${t.role==="leader"?"me":"them"}"><span>${t.role==="leader"?"You":esc(rp.who)}</span><p>${esc(t.text)}</p></div>`).join("") || `<p class="empty">Start the conversation the way you would in real life. ${esc(rp.who)} will respond in character.</p>`;
+  return `
+  <div class="mhead"><div class="eyebrow">Practice studio</div><h2>Practice the <em>hard conversations</em></h2><div class="sub">Low stakes, real reactions, honest feedback</div></div>
+  <div class="rp-picker" role="tablist" aria-label="Conversations">${ROLEPLAYS.map(r=>{ const s=state.rp[r.id]; const a=s&&s.fb?rpAvg(s.fb):null; return `<button role="tab" aria-selected="${r.id===rp.id}" data-rpsel="${r.id}"><b>${r.title}</b><small>${MODULES.find(x=>x.id===r.mod).short}${a!=null?" · "+a+"/3":""}</small></button>`; }).join("")}</div>
+  <div class="studio">
+    <div class="brief">
+      <span class="eyebrow">${m.weeks} · ${esc(rp.who)}, ${esc(rp.role)}</span>
+      <h3>${rp.title}</h3>
+      <p>${rp.brief}</p>
+      <p><b>Your goal:</b> ${rp.goal}</p>
+      <div class="modes" role="radiogroup" aria-label="Difficulty">${Object.keys(MODES).map(k=>`<button role="radio" aria-checked="${st.mode===k}" data-mode="${k}" ${rpBusy?"disabled":""}>${k.charAt(0).toUpperCase()+k.slice(1)}</button>`).join("")}</div>
+      <p class="note">${MODES[st.mode]}</p>
+      <p class="eyebrow" style="margin-top:6px">Skills you'll be scored on</p>
+      <ul class="skills">${rp.skills.map(s=>`<li>${s}</li>`).join("")}</ul>
+    </div>
+    <div class="chat">
+      ${avail}
+      <div class="chat-log" id="chat-log" aria-live="polite">${log}</div>
+      <div class="composer">
+        <label for="rp-input" class="sr">Your message</label>
+        <textarea id="rp-input" placeholder="Type what you'd say…" ${samplerState!=="ready"||rpBusy?"disabled":""}></textarea>
+        <div class="row">
+          <button class="btn primary" id="rp-send" ${samplerState!=="ready"||rpBusy?"disabled":""}>Send</button>
+          ${rpBusy?`<button class="btn" id="rp-stop">Stop</button>`:""}
+          <button class="btn" id="rp-end" ${samplerState!=="ready"||rpBusy||st.turns.filter(t=>t.role==="leader").length<2?"disabled":""}>End and get feedback</button>
+          <button class="btn ghost" id="rp-reset" ${rpBusy?"disabled":""}>Start over</button>
+        </div>
+        <p class="note" id="rp-msg" role="status">Practice only. Never type real patient names or details. Your program leader sees your scores and feedback, not the conversation, unless you share it.</p>
+      </div>
+      ${st.fb?renderFeedback(rp, st.fb):""}
+    </div>
+  </div>`;
+}
+function renderFeedback(rp, fb){
+  const avg = rpAvg(fb);
+  return `<div class="feedback" id="rp-fb"><div class="fb-head"><div><span class="eyebrow">Your feedback</span><h3>${esc(fb.overall||"")}</h3></div><div class="score"><b>${avg!=null?avg:"–"}</b><span>average of 3</span></div></div>
+    <div class="fb-rows">${(fb.scores||[]).map(s=>`<div class="fb-row"><div class="dots" aria-label="${Number(s.score)} of 3">${[1,2,3].map(n=>`<i class="${n<=Number(s.score)?"on":""}"></i>`).join("")}</div><div><b>${esc(s.skill)}</b><p>${esc(s.evidence)}</p>${s.tip?`<p class="tip">${esc(s.tip)}</p>`:""}</div></div>`).join("")}</div>
+    ${fb.strongest?`<p><b>Your strongest moment:</b> ${esc(fb.strongest)}</p>`:""}
+    ${fb.try_this?`<p><b>Try saying:</b> ${esc(fb.try_this)}</p>`:""}
+    ${fb.hidden!=null?`<p><b>Did you uncover what was really going on?</b> ${esc(fb.hidden)}</p>`:""}
+    ${fb.next?`<p><b>Practice next:</b> ${esc(fb.next)}</p>`:""}
+    <div class="sharebar">${state.shared.rp[rp.id] ? `<span class="shared-on">Shared with your program leader on ${esc(state.shared.rp[rp.id].at)}.</span> <button class="btn ghost" data-rpshare="${rp.id}">Update shared copy</button> <button class="btn ghost" data-rpunshare="${rp.id}">Stop sharing</button>` : `<button class="btn" data-rpshare="${rp.id}">Share this conversation with your program leader</button><span class="note">Your scores and feedback are already visible. This adds the full conversation.</span>`}</div>
+    <p class="note">Try it again on a harder setting, or bring this feedback to your 1:1.</p></div>`;
+}
+function rules(rp, mode){
+  return `You are playing a role in a leadership training exercise at a nurse-led remote patient monitoring company. The user is a newly promoted nurse leader practicing a real workplace conversation with a nurse on their team. Stay fully in character as ${rp.who} (${rp.role}) for the whole conversation.
+
+Situation from the leader's side: ${rp.brief}
+
+Who ${rp.who} is: ${rp.persona}
+
+Hidden context, known only to ${rp.who}: ${rp.hidden} Reveal it gradually and only when the leader earns it by asking open questions, listening, and not judging. Never volunteer all of it at once.
+
+Difficulty: ${MODES[mode]}
+
+How to reply: write only ${rp.who}'s spoken words, as in a real video call. One to four sentences. Natural, everyday speech. React honestly to what the leader actually says: if they judge, lecture or assume, become more guarded; if they listen and show care, open up. Do not coach the leader, give feedback, summarize, or step out of character. Do not use real patient names. If the leader writes something clearly inappropriate, respond as a real nurse would.`;
+}
+function rpMessages(rp, st){
+  let turns = st.turns.slice(-30);
+  while(turns.length && turns[0].role!=="leader") turns = turns.slice(1);
+  const msgs = turns.map(t=>({role: t.role==="leader"?"user":"assistant", content: t.text}));
+  if(msgs.length) msgs[0] = {role:"user", content: rules(rp, st.mode) + "\n\nThe leader's opening message to " + rp.who + ":\n" + msgs[0].content};
+  return msgs;
+}
+function sampleErr(e){
+  const c = e && e.code;
+  if(["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(c)){ samplerState = "none"; return "The practice partner isn't available for your account here."; }
+  if(c==="rate_limited") return "Too many practice messages at once. Wait a minute and try again.";
+  if(c==="session_expired") return "Sign in to Claude again, then retry.";
+  if(c==="refused") return "Claude couldn't continue with that message. Try rephrasing it.";
+  if(c==="cancelled") return "Stopped.";
+  if(c==="invalid_json") return "The feedback didn't come back in a readable form. Try again.";
+  return "Something interrupted the reply. Try sending again.";
+}
+async function rpSend(){
+  const input = document.getElementById("rp-input"), text = (input.value||"").trim();
+  if(!text || rpBusy || !sampler) return;
+  const rp = ROLEPLAYS.find(r=>r.id===state.rpSel), st = rpState(rp.id);
+  st.turns.push({role:"leader", text}); st.fb = null; save();
+  rpBusy = true; render();
+  const log = document.getElementById("chat-log");
+  const bub = document.createElement("div"); bub.className = "msg them"; bub.innerHTML = `<span>${esc(rp.who)}</span><p class="typing">${esc(rp.who)} is typing…</p>`;
+  log.appendChild(bub); log.scrollTop = log.scrollHeight;
+  const p = bub.querySelector("p");
+  rpCtl = new AbortController();
+  let msg = "";
+  try{
+    const res = await sampler(rpMessages(rp, st), {cache:false, modelTier:"quick", signal:rpCtl.signal, onText:({text})=>{ p.classList.remove("typing"); p.textContent = text; log.scrollTop = log.scrollHeight; }});
+    st.turns.push({role:"them", text: res.text.trim()});
+  }catch(e){
+    if(e && e.text){ st.turns.push({role:"them", text:e.text.trim()}); }
+    msg = sampleErr(e);
+  }
+  rpBusy = false; rpCtl = null; save(); render();
+  const box = document.getElementById("rp-input"); if(box) box.focus();
+  if(msg){ const el=document.getElementById("rp-msg"); if(el) el.textContent = msg; }
+}
+async function rpFeedback(){
+  if(rpBusy || !sampler) return;
+  const rp = ROLEPLAYS.find(r=>r.id===state.rpSel), st = rpState(rp.id);
+  const transcript = st.turns.map(t=>(t.role==="leader"?"LEADER: ":rp.who.toUpperCase()+": ")+t.text).join("\n");
+  const prompt = `You are an expert leadership coach for new nurse leaders. Your coaching draws on Crucial Conversations, Brené Brown's Dare to Lead, Kim Scott's Radical Candor and Michael Bungay Stanier's The Coaching Habit. Evaluate ONLY the leader's side of this practice conversation. Be specific, warm and honest. Quote or closely reference what the leader actually said.
+
+Scenario: ${rp.brief}
+Leader's goal: ${rp.goal}
+What the nurse was privately holding back: ${rp.hidden}
+Difficulty setting: ${st.mode}
+
+Skills to score, each from 1 to 3 (1 = not yet, 2 = partly, 3 = strong):
+${rp.skills.map((s,i)=>(i+1)+". "+s).join("\n")}
+
+Transcript:
+${transcript}
+
+Reply with only a JSON object in exactly this shape:
+{"overall":"one encouraging, honest sentence summarizing how it went","scores":[{"skill":"exact skill name","score":2,"evidence":"what the leader said or did that shows this","tip":"one specific thing to do differently"}],"strongest":"the leader's best moment, quoted","try_this":"a better line the leader could have said at a specific moment, written as a quote","hidden":"one sentence on whether the leader uncovered what the nurse was holding back, and why or why not","next":"one thing to practice next time"}
+Include one entry in "scores" for every skill above, in the same order.`;
+  rpBusy = true; render();
+  const el = document.getElementById("rp-msg"); if(el) el.textContent = "Reviewing your conversation. This can take up to a minute…";
+  rpCtl = new AbortController();
+  let msg = "";
+  try{
+    const fb = await sampler.json(prompt, {cache:false, signal:rpCtl.signal});
+    if(!fb || !Array.isArray(fb.scores)) throw {code:"invalid_json"};
+    fb.scores = fb.scores.map(s=>({skill:String(s.skill||""), score:Math.max(1,Math.min(3,Number(s.score)||1)), evidence:String(s.evidence||""), tip:String(s.tip||"")}));
+    st.fb = fb;
+    st.history = (st.history||[]).concat([{d:new Date().toISOString().slice(0,10), avg:rpAvg(fb), mode:st.mode}]).slice(-12);
+  }catch(e){ msg = sampleErr(e); }
+  rpBusy = false; rpCtl = null; save(); render();
+  if(msg){ const m2=document.getElementById("rp-msg"); if(m2) m2.textContent = msg; }
+  else { const f=document.getElementById("rp-fb"); if(f) f.scrollIntoView({behavior:"smooth", block:"start"}); }
+}
+
+/* ---------------- LEADER LAB GUIDE ---------------- */
+function renderLab(){
+  return `
+  <div class="mhead"><div class="eyebrow">Practice</div><h2>The <em>leader lab</em></h2><div class="sub">Where new leaders practice together</div></div>
+  <div class="pair">
+    <div class="panel peach"><span class="tag">Why a lab</span><p>Research on leadership training finds that practice with feedback, led by a facilitator over several sessions, works far better than reading alone. The lab is where new leaders say the hard sentences out loud, hear how they land, and learn from each other's real situations.</p></div>
+    <div class="panel sky"><span class="tag">The format</span><p>Seven 60-minute sessions, one every two weeks, matched to the modules. Three to nine new leaders per cohort. Run by a senior leader who facilitates every session. Works on video with breakout rooms.</p></div>
+  </div>
+  <section class="blk"><h3>The seven sessions</h3><div class="checks">${MODULES.map(m=>`<button class="check linkrow" data-sec="${m.id}"><span class="min">${m.weeks}</span><span><b>${m.lab.focus}</b><small>Practice: ${m.lab.triad}</small></span></button>`).join("")}</div></section>
+  <section class="blk"><h3>Every session follows the same agenda</h3>
+    <ol class="agenda">
+      <li><span class="min">10 min</span><div><b>Check-in round</b><p>Each leader answers the session's check-in question in a sentence or two. The facilitator goes first.</p></div></li>
+      <li><span class="min">15 min</span><div><b>Challenge clinic</b><p>One or two leaders bring a real situation. Others may only ask questions for the first five minutes, then offer ideas. The leader decides what to try.</p></div></li>
+      <li><span class="min">25 min</span><div><b>Practice in threes</b><p>Three rounds of about eight minutes. In each round: five minutes of conversation, three minutes of observer feedback. Rotate so everyone plays leader once.</p></div></li>
+      <li><span class="min">10 min</span><div><b>Commitments</b><p>Each leader says one thing they'll do before the next lab. The facilitator writes them down and opens the next lab by asking how it went.</p></div></li>
+    </ol></section>
+  <section class="blk"><h3>Roles in practice</h3><div class="learn">
+    <div class="card"><h4>Leader</h4><p>Holds the conversation as they really would. No pausing to explain. If they get stuck, they can call a 30-second timeout.</p></div>
+    <div class="card"><h4>Team member</h4><p>Plays the person realistically, using the module's description. Not a pushover, not a villain. Opens up when the leader earns it.</p></div>
+    <div class="card"><h4>Observer</h4><p>Scores each item on the module's observer list from 1 to 3, and writes down one exact quote that worked and one that didn't.</p></div>
+    <div class="card"><h4>Feedback order</h4><p>The leader goes first: what worked, what they'd change. Then the team member: how it felt. Then the observer: scores and quotes.</p></div>
+  </div></section>
+  <section class="blk"><h3>Ground rules</h3><ul class="qlist">
+    <li><b>The vault.</b> What's shared in the lab stays in the lab. No names of team members in the challenge clinic.</li>
+    <li><b>Practice, not performance.</b> Clumsy is expected. That's why we practice here first.</li>
+    <li><b>Ask before advising.</b> In the clinic, questions come first.</li>
+    <li><b>Everyone plays leader.</b> No one only observes.</li>
+  </ul></section>
+  <section class="blk"><div class="checkin"><h3>Facilitator tips</h3><ul>
+    <li>Share one of your own mistakes in the first session. It sets the tone faster than any ground rule.</li>
+    <li>Keep time strictly. The practice block is the most valuable part and the first to get squeezed.</li>
+    <li>Notice who avoids playing leader in hard scenarios, and gently make sure they go.</li>
+    <li>Use the Practice studio scores and commitments to follow up in 1:1s.</li>
+    <li>At the final session, hold the graduation shares: what changed for each leader since Week 0.</li>
+  </ul></div></section>`;
+}
+
+/* ---------------- PERFORMANCE PATHWAY ---------------- */
+function renderPathway(){
+  return `
+  <div class="mhead"><div class="eyebrow">Resources</div><h2>The <em>performance pathway</em></h2><div class="sub">From a first conversation to a clear outcome, fairly and without surprises</div></div>
+  <div class="pair">
+    <div class="panel peach"><span class="tag">The purpose</span><p>A performance conversation exists to help someone succeed, not to build a paper trail. Most concerns should be solved at the early check-in. The stages make sure every person on every team gets the same fair, prompt, transparent process.</p></div>
+    <div class="panel sky"><span class="tag">Four principles</span><ul class="plain"><li><b>Prompt:</b> address a concern within days, not months.</li><li><b>Factual:</b> metrics, dates and observations, never labels.</li><li><b>Consistent:</b> the same standard for friends and everyone else.</li><li><b>No surprises:</b> nothing in a written plan should be news.</li></ul></div>
+  </div>
+  <section class="blk"><h3>The stages</h3><div class="stages">${PATHWAY.map(s=>`<div class="stage"><div class="st-n">${s.n}</div><div class="st-body"><h4>${s.t}</h4><p class="note"><b>When:</b> ${s.when}</p><p><b>Goal:</b> ${s.goal}</p><ul>${s.do.map(x=>`<li>${x}</li>`).join("")}</ul><div class="st-meta"><span><b>Document:</b> ${s.doc}</span><span><b>Who:</b> ${s.who}</span></div></div></div>`).join("")}</div></section>
+  <section class="blk"><div class="escalate"><span class="tag">Bring in your director right away</span><ul>${ESCALATE.map(x=>`<li>${x}</li>`).join("")}</ul></div></section>
+  <section class="blk">${renderPlanner(P.docTool)}</section>
+  <p class="note">This pathway describes good leadership practice. It isn't legal advice. Follow your organization's policies, and involve your director in any decision about a written plan or someone's employment.</p>`;
+}
+
+/* ---------------- GROWTH ---------------- */
+function avgOf(obj, n){ const v=[]; for(let i=0;i<n;i++){ const x=Number(obj[i]); if(x) v.push(x); } return v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10 : null; }
+function deltaChip(a,b){ if(a==null||b==null) return ""; const d=Math.round((b-a)*10)/10; return `<span class="delta ${d>0?"up":(d<0?"down":"")}">${d>0?"+":""}${d}</span>`; }
+function barPair(a,b,max){ const w=x=>x?Math.round(x/max*100):0; return `<div class="bars"><div class="b0" style="width:${w(a)}%"></div><div class="b1" style="width:${w(b)}%"></div></div>`; }
+function renderGrowth(){
+  const g = state.growth;
+  const s0 = avgOf(g.self0, SELF_SKILLS.length), s1 = avgOf(g.self12, SELF_SKILLS.length);
+  const p0 = avgOf(g.pulse0, PULSE_Q.length), p1 = avgOf(g.pulse12, PULSE_Q.length);
+  const rpRuns = ROLEPLAYS.reduce((a,r)=>a+((state.rp[r.id]&&state.rp[r.id].history)||[]).length,0);
+  const sel = (grp,i,val)=>`<select id="${grp}-${i}" data-grow="${grp}" data-i="${i}" aria-label="${grp==="self0"?"Week 0":"Week 12"} rating"><option value="">–</option>${[1,2,3,4,5].map(n=>`<option ${Number(val)===n?"selected":""}>${n}</option>`).join("")}</select>`;
+  const num = (grp,i,val)=>`<input type="text" inputmode="decimal" id="${grp}-${i}" data-grow="${grp}" data-i="${i}" value="${esc(val)}" placeholder="1.0–5.0" aria-label="${grp==="pulse0"?"Week 0":"Week 12"} average">`;
+  return `
+  <div class="mhead"><div class="eyebrow">Start here</div><h2>My <em>growth</em></h2><div class="sub">Measure where you start, and see how far you've come</div></div>
+  <div class="tiles">
+    <div class="tile"><span>Self-assessment</span><b>${s0??"–"} → ${s1??"–"}</b>${deltaChip(s0,s1)}<small>Average of 5, Week 0 to Week 12</small></div>
+    <div class="tile"><span>Team pulse</span><b>${p0??"–"} → ${p1??"–"}</b>${deltaChip(p0,p1)}<small>Average of 5, from your team</small></div>
+    <div class="tile"><span>Practice conversations</span><b>${rpRuns}</b><small>Scored sessions in the studio</small></div>
+  </div>
+  <section class="blk"><h3>Self-assessment</h3><p class="lede">Rate yourself from 1 (not yet) to 5 (consistently) in Week 0, and again in Week 12 without looking back first. Most new leaders rate themselves lower on a few skills at Week 12. That usually means they understand the skill better, not that they've gotten worse.</p>
+    <div class="gtable"><div class="gh"><span>Skill</span><span>Week 0</span><span>Week 12</span><span></span></div>
+    ${SELF_SKILLS.map((s,i)=>`<div class="gr"><span>${s}</span>${sel("self0",i,g.self0[i])}${sel("self12",i,g.self12[i])}<div>${barPair(Number(g.self0[i])||0, Number(g.self12[i])||0, 5)}</div></div>`).join("")}
+    </div></section>
+  <section class="blk"><h3>Team pulse</h3><p class="lede">An anonymous survey your team completes in Week 0 and Week 12. Ask your leader to send it and share the averages with you, so responses stay anonymous. Wait for at least four responses before looking at results.</p>
+    <div class="tool"><h3>The survey</h3><p class="lede">Ten statements rated 1 (strongly disagree) to 5 (strongly agree), plus two open questions. Copy it into an anonymous survey tool.</p>
+      <ol class="qlist">${PULSE_Q.map(q=>`<li>${q}</li>`).join("")}${PULSE_OPEN.map(q=>`<li>${q} <i>(open answer)</i></li>`).join("")}</ol>
+      <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" data-copy="pulse">Copy the survey</button><span class="note" id="copy-pulse" role="status"></span></div>
+      <pre class="sr" id="out-pulse">${esc("Team pulse (anonymous)\nRate each from 1 (strongly disagree) to 5 (strongly agree).\n\n"+PULSE_Q.map((q,i)=>(i+1)+". "+q).join("\n")+"\n\nOpen questions:\n"+PULSE_OPEN.map(q=>"- "+q).join("\n"))}</pre>
+    </div>
+    <div class="gtable"><div class="gh"><span>Statement</span><span>Week 0</span><span>Week 12</span><span></span></div>
+    ${PULSE_Q.map((q,i)=>`<div class="gr"><span>${q}</span>${num("pulse0",i,g.pulse0[i])}${num("pulse12",i,g.pulse12[i])}<div>${barPair(Number(g.pulse0[i])||0, Number(g.pulse12[i])||0, 5)}</div></div>`).join("")}
+    <div class="gr"><span><b>Number of responses</b></span><input type="text" inputmode="numeric" id="n0" data-grown="n0" value="${esc(g.n0)}" aria-label="Week 0 responses"><input type="text" inputmode="numeric" id="n12" data-grown="n12" value="${esc(g.n12)}" aria-label="Week 12 responses"><div></div></div>
+    </div>
+    <div class="legend"><span><i class="b0"></i>Week 0</span><span><i class="b1"></i>Week 12</span></div></section>
+  <section class="blk"><h3>Practice scores</h3><p class="lede">Your scored sessions in the Practice studio, by conversation.</p>
+    <div class="checks">${ROLEPLAYS.map(r=>{ const h=(state.rp[r.id]&&state.rp[r.id].history)||[]; return `<button class="check linkrow" data-rp="${r.id}"><span class="min">${h.length?h[h.length-1].avg+"/3":"–"}</span><span><b>${r.title}</b><small>${h.length?h.map(x=>x.avg+" ("+x.mode+")").join(" → "):"Not practiced yet"}</small></span></button>`; }).join("")}</div></section>`;
+}
+
+/* ---------------- TOOLKIT + SPONSOR ---------------- */
+function plannerText(tool){
+  let out = tool.template;
+  tool.fields.forEach(f=>{ const v = (state.planner[(tool.prefix||"")+f.key]||"").trim(); out = out.split("{"+f.key+"}").join(v || "["+f.blank+"]"); });
+  return out;
+}
+function renderPlanner(t){
+  const pre = t.prefix||"";
+  return `<div class="tool" id="tool-${t.id}"><h3>${t.title}</h3><p class="lede">${t.lede}</p>
+    <div class="grid2">${t.fields.map(f=>`<label for="pl-${pre}${f.key}">${f.label}${f.input?`<input type="text" id="pl-${pre}${f.key}" data-plan="${pre}${f.key}" data-tool="${t.id}" value="${esc(state.planner[pre+f.key])}" placeholder="${esc(f.ph||"")}">`:`<textarea id="pl-${pre}${f.key}" data-plan="${pre}${f.key}" data-tool="${t.id}" placeholder="${esc(f.ph||"")}">${esc(state.planner[pre+f.key])}</textarea>`}</label>`).join("")}</div>
+    ${t.note?`<p class="note" style="margin-top:12px">${t.note}</p>`:""}
+    <div class="out" id="out-${t.id}">${esc(plannerText(t))}</div>
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button class="btn" data-copy="${t.id}">Copy</button><span class="note" id="copy-${t.id}" role="status"></span></div></div>`;
+}
+function braveFocus(){ const s = BRAVING.map(x=>({n:x[0], v:Number(state.braving[x[0]]||3)})); return s.reduce((a,c)=>c.v<a.v?c:a, s[0]).n; }
+function renderTool(t){
+  if(t.type==="planner") return renderPlanner(t);
+  if(t.type==="braving"){
+    const b = state.braving;
+    return `<div class="tool"><h3>Trust self-check</h3><p class="lede">${t.lede}</p>
+      <div class="brv">${BRAVING.map(x=>`<div class="brv-row"><b>${x[0]}<small>${x[1]}</small></b><input type="range" min="1" max="5" step="1" id="brv-${x[0]}" data-brv="${x[0]}" value="${b[x[0]]||3}" aria-label="${x[0]}"><output id="out-${x[0]}">${b[x[0]]||3}</output></div>`).join("")}</div>
+      <p class="out" id="brv-focus">Your focus area: <b>${braveFocus()}</b>. Pick one small action this week that builds it.</p></div>`;
+  }
+  return `<div class="tool"><h3>${t.title}</h3><p class="lede">${t.lede}</p><ol class="qlist">${t.items.map(x=>`<li>${x}</li>`).join("")}</ol></div>`;
+}
+function renderToolkit(){
+  return `<div class="mhead"><div class="eyebrow">Resources</div><h2>The <em>toolkit</em></h2><div class="sub">Use these alongside the modules, and keep using them after.</div></div>
+  ${P.tools.map(renderTool).join("")}
+  <div class="tool"><h3>Further reading</h3><div class="books">${P.books.map(b=>`<div><b>${b[0]}</b><span>${b[1]}</span></div>`).join("")}</div></div>`;
+}
+function renderSponsor(){
+  const s = P.sponsor;
+  return `<div class="mhead"><div class="eyebrow">${s.eyebrow}</div><h2>${s.title}</h2><div class="sub">${s.sub}</div></div>
+  <div class="pair"><div class="panel peach"><span class="tag">Why this matters</span><p>${s.why}</p></div><div class="panel sky"><span class="tag">Your commitment</span><p>${s.commit}</p></div></div>
+  <section class="blk"><h3>What to do when</h3><div class="checks">${s.steps.map(x=>checkRow(x.id,x.t,x.s)).join("")}</div></section>
+  <section class="blk"><h3>What to watch for</h3><div class="learn">${s.watch.map(w=>`<div class="card"><h4>${w[0]}</h4><p>${w[1]}</p></div>`).join("")}</div></section>`;
+}
+
+/* ---------------- EVENTS ---------------- */
+function go(sec){
+  if(rpBusy && rpCtl) rpCtl.abort();
+  view.sec = sec; render();
+  try{ history.replaceState(null,"","#"+sec); }catch(e){}
+  try{ sessionStorage.setItem(LS_KEY+"-view", sec); }catch(e){}
+  document.getElementById("ladder").scrollIntoView({behavior:"smooth", block:"start"});
+}
+function copyOut(id){
+  const el = document.getElementById("out-"+id), msg = document.getElementById("copy-"+id);
+  const txt = el ? el.textContent : "";
+  const fallback = ()=>{ if(!el) return; el.classList.remove("sr"); const r=document.createRange(); r.selectNodeContents(el); const s=getSelection(); s.removeAllRanges(); s.addRange(r); if(msg) msg.textContent="Selected. Press Ctrl+C or Cmd+C to copy."; };
+  try{ navigator.clipboard.writeText(txt).then(()=>{ if(msg) msg.textContent="Copied."; }, fallback); }catch(e){ fallback(); }
+}
+function rerenderScenario(id){ const m = MODULES.find(x=>x.id===id); const box = document.getElementById("scn-"+id); if(m && box) box.innerHTML = renderScenario(m); renderRail(); }
+document.addEventListener("click", e=>{
+  const t = e.target.closest("[data-sec],[data-pick],[data-reveal],[data-reset],[data-rp],[data-rpsel],[data-mode],[data-copy],[data-share],[data-unshare],[data-rpshare],[data-rpunshare],[data-leader],#rp-send,#rp-end,#rp-reset,#rp-stop");
+  if(!t) return;
+  if(t.dataset.sec){ go(t.dataset.sec); return; }
+  if(t.dataset.reveal){ const id=t.dataset.reveal; state.picks[id] = Object.assign(state.picks[id]||{}, {open:true}); save(); rerenderScenario(id); return; }
+  if(t.dataset.pick){ const id=t.dataset.pick; const pk = state.picks[id] = state.picks[id]||{open:true}; pk["s"+t.dataset.step] = Number(t.dataset.k); save(); rerenderScenario(id); return; }
+  if(t.dataset.reset){ const id=t.dataset.reset; state.picks[id] = {say: (state.picks[id]||{}).say, open:true}; save(); rerenderScenario(id); return; }
+  if(t.dataset.rp){ state.rpSel = t.dataset.rp; save(); go("studio"); return; }
+  if(t.dataset.rpsel){ if(rpBusy) return; state.rpSel = t.dataset.rpsel; save(); render(); return; }
+  if(t.dataset.mode){ if(rpBusy) return; rpState(state.rpSel).mode = t.dataset.mode; save(); render(); return; }
+  if(t.dataset.copy){ copyOut(t.dataset.copy); return; }
+  if(t.dataset.share){ const id=t.dataset.share; const txt=(state.notes[id]||"").trim(); if(!txt) return; state.shared.refl[id] = {text:txt, at:new Date().toISOString().slice(0,10)}; save(); document.getElementById("sb-"+id).innerHTML = shareBar(id); return; }
+  if(t.dataset.unshare){ const id=t.dataset.unshare; delete state.shared.refl[id]; save(); document.getElementById("sb-"+id).innerHTML = shareBar(id); return; }
+  if(t.dataset.rpshare){ const st=rpState(t.dataset.rpshare); state.shared.rp[t.dataset.rpshare] = {turns: st.turns.slice(-30), at:new Date().toISOString().slice(0,10)}; save(); render(); return; }
+  if(t.dataset.rpunshare){ delete state.shared.rp[t.dataset.rpunshare]; save(); render(); return; }
+  if(t.dataset.leader){ dashSel = t.dataset.leader; render(); const d=document.getElementById("dash-detail"); if(d) d.scrollIntoView({behavior:"smooth", block:"start"}); return; }
+  if(t.id==="rp-send"){ rpSend(); return; }
+  if(t.id==="rp-end"){ rpFeedback(); return; }
+  if(t.id==="rp-stop"){ if(rpCtl) rpCtl.abort(); return; }
+  if(t.id==="rp-reset"){ const st = rpState(state.rpSel); st.turns = []; st.fb = null; save(); render(); return; }
+});
+document.addEventListener("keydown", e=>{ if(e.target.id==="rp-input" && e.key==="Enter" && !e.shiftKey){ e.preventDefault(); rpSend(); } });
+document.addEventListener("change", e=>{
+  const t = e.target;
+  if(t.dataset.check){
+    state.checks[t.dataset.check] = t.checked; t.closest(".check").classList.toggle("done", t.checked); save(); renderRail();
+    const m = MODULES.find(x=>x.id===view.sec); if(m){ const bar=document.querySelector(".bar span"); if(bar) bar.style.width = modProgress(m).pct+"%"; }
+  } else if(t.dataset.grow && t.tagName==="SELECT"){ state.growth[t.dataset.grow][t.dataset.i] = t.value; save(); render(); }
+  else if(t.dataset.grow || t.dataset.grown){ render(); }
+  else if(t.id==="coh-filter"){ dashCohort = t.value; dashSel = null; render(); }
+});
+document.addEventListener("input", e=>{
+  const t = e.target;
+  if(t.dataset.note){ state.notes[t.dataset.note] = t.value; save(); const sb=document.getElementById("sb-"+t.dataset.note); if(sb && !sb.dataset.lock){ sb.innerHTML = shareBar(t.dataset.note); } }
+  else if(t.dataset.say){ const pk = state.picks[t.dataset.say] = state.picks[t.dataset.say]||{}; pk.say = t.value; save(); }
+  else if(t.dataset.me){ state.me[t.dataset.me] = t.value; save(); }
+  else if(t.dataset.plan){ state.planner[t.dataset.plan] = t.value; const tool = t.dataset.tool==="doc" ? P.docTool : P.tools.find(x=>x.id===t.dataset.tool); const out=document.getElementById("out-"+t.dataset.tool); if(tool && out) out.textContent = plannerText(tool); save(); }
+  else if(t.dataset.grow && t.tagName==="INPUT"){ const v = t.value.trim(); const n = Number(v); state.growth[t.dataset.grow][t.dataset.i] = (v && n>=1 && n<=5) ? v : (v ? state.growth[t.dataset.grow][t.dataset.i]||"" : ""); save(); }
+  else if(t.dataset.grown){ state.growth[t.dataset.grown] = t.value.replace(/[^0-9]/g,""); save(); }
+  else if(t.dataset.brv){
+    state.braving[t.dataset.brv] = Number(t.value); document.getElementById("out-"+t.dataset.brv).textContent = t.value;
+    document.getElementById("brv-focus").innerHTML = `Your focus area: <b>${braveFocus()}</b>. Pick one small action this week that builds it.`; save();
+  }
+});
+document.addEventListener("focusout", e=>{ if(e.target.matches("textarea,input[type=text]") && !rpBusy && view.sec!=="growth") renderRail(); });
+
+/* ---------------- BOOT ---------------- */
+loadLocal();
+(function initView(){
+  const h = (location.hash||"").slice(1);
+  const ok = s => ["overview","toolkit","sponsor","studio","lab","pathway","growth","dashboard"].includes(s) || MODULES.some(m=>m.id===s);
+  if(ok(h)){ view.sec = h; return; }
+  try{ const v = sessionStorage.getItem(LS_KEY+"-view"); if(v && ok(v)) view.sec = v; }catch(e){}
+})();
+renderHeader();
+setStatus();
+render();
+connect();
+
+/* ---------------- SHARING + COHORT DASHBOARD ---------------- */
+function shareBar(id){
+  const sh = state.shared.refl[id], txt = (state.notes[id]||"").trim();
+  if(sh){
+    const stale = txt && txt !== sh.text;
+    return `<span class="shared-on">Shared with your program leader on ${esc(sh.at)}.${stale?" You've edited it since.":""}</span>${stale?` <button class="btn ghost" data-share="${id}">Update shared copy</button>`:""} <button class="btn ghost" data-unshare="${id}">Stop sharing</button>`;
+  }
+  return `<button class="btn ghost" data-share="${id}" ${txt?"":"disabled"}>Share with my program leader</button>`;
+}
+function buildSummary(){
+  const scen = {}, rp = {};
+  MODULES.forEach(m=>{
+    const pk = state.picks[m.id]; if(!pk) return;
+    const o0 = pk.s0!=null ? m.scenario.steps[0].options[pk.s0] : null, o1 = pk.s1!=null ? m.scenario.steps[1].options[pk.s1] : null;
+    scen[m.id] = {say:(pk.say||"").slice(0,1500), s0:pk.s0??null, s1:pk.s1??null, r0:o0?o0.r:null, r1:o1?o1.r:null};
+  });
+  ROLEPLAYS.forEach(r=>{
+    const st = state.rp[r.id]; if(!st || (!st.fb && !(st.history||[]).length)) return;
+    rp[r.id] = {mode:st.mode, history:st.history||[], fb:st.fb||null};
+  });
+  return {name:state.me.name||"", cohort:state.me.cohort||"", updatedAt:state.updatedAt||0, overall:overall(),
+    modules:MODULES.map(m=>({id:m.id, pct:modProgress(m).pct})), scen, rp,
+    growth:JSON.parse(JSON.stringify(state.growth)), shared:JSON.parse(JSON.stringify(state.shared))};
+}
+function watchCohort(db){
+  try{
+    db.collection("progress").onSnapshot(async snap=>{
+      cohortDocs = snap.docs.filter(d=>d.exists).map(d=>Object.assign({id:d.id}, d.data()));
+      try{ if(userNs && userNs.profiles){ const ps = await userNs.profiles(cohortDocs.map(d=>d.id)); cohortNames = {}; cohortDocs.forEach(d=>{ cohortNames[d.id] = (ps && ps[d.id] && ps[d.id].name) || ""; }); } }catch(e){}
+      renderRail();
+      if(view.sec==="dashboard" && !rpBusy) render();
+    }, ()=>{});
+  }catch(e){}
+}
+const leaderName = d => (d.name||"").trim() || cohortNames[d.id] || "Unnamed leader";
+const ago = ts => { if(!ts) return "–"; const days = Math.floor((Date.now()-ts)/86400000); return days<=0 ? "Today" : days===1 ? "Yesterday" : days+" days ago"; };
+const dAvg = d => { const v=[]; Object.values(d.rp||{}).forEach(x=>{ const a=x.fb?rpAvg(x.fb):null; if(a!=null) v.push(a); }); return v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10 : null; };
+const gAvg = (obj,n) => avgOf(obj||{}, n);
+function currentModule(d){ const m = (d.modules||[]).find(x=>x.pct<100); return m ? (MODULES.find(x=>x.id===m.id)||{}).short : "All modules done"; }
+function renderDashboard(){
+  if(!isOwner) return `<div class="mhead"><h2>Cohort dashboard</h2></div><p>Only the program owner can see this page.</p>`;
+  const cohorts = [...new Set(cohortDocs.map(d=>(d.cohort||"").trim()).filter(Boolean))].sort();
+  const docs = cohortDocs.filter(d=>!dashCohort || (d.cohort||"").trim()===dashCohort).sort((a,b)=>leaderName(a).localeCompare(leaderName(b)));
+  const head = `<div class="mhead"><div class="eyebrow">Only visible to you</div><h2>Cohort <em>dashboard</em></h2><div class="sub">Progress, scenario choices, practice scores and growth for every leader</div></div>
+    <div class="dash-bar"><label for="coh-filter">Cohort <select id="coh-filter"><option value="">All cohorts</option>${cohorts.map(c=>`<option ${c===dashCohort?"selected":""}>${esc(c)}</option>`).join("")}</select></label><span class="note">${docs.length} leader${docs.length===1?"":"s"}. Updates live as leaders work.</span></div>`;
+  if(!docs.length) return head + `<div class="empty-dash"><h3>No leaders here yet</h3><p>Leaders appear as soon as they open the page and start working. Share the page from its Share menu and give each leader <b>Contributor</b> access so their progress saves. Ask them to fill in their name and cohort on the Program overview page.</p></div>`;
+  const avg = arr => { const v = arr.filter(x=>x!=null); return v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10 : null; };
+  const comp = avg(docs.map(d=>d.overall||0));
+  const prac = avg(docs.map(dAvg));
+  const selfD = avg(docs.map(d=>{ const a=gAvg(d.growth&&d.growth.self0,SELF_SKILLS.length), b=gAvg(d.growth&&d.growth.self12,SELF_SKILLS.length); return a!=null&&b!=null ? b-a : null; }));
+  const pulseD = avg(docs.map(d=>{ const a=gAvg(d.growth&&d.growth.pulse0,PULSE_Q.length), b=gAvg(d.growth&&d.growth.pulse12,PULSE_Q.length); return a!=null&&b!=null ? b-a : null; }));
+  const sign = x => x==null ? "–" : (x>0?"+":"")+x;
+  // focus areas: lowest-scoring practice skills across the cohort
+  const skillRows = [];
+  ROLEPLAYS.forEach(r=>{ r.skills.forEach((sk,i)=>{ const v=[]; docs.forEach(d=>{ const f=d.rp&&d.rp[r.id]&&d.rp[r.id].fb; if(f&&f.scores&&f.scores[i]) v.push(Number(f.scores[i].score)); }); if(v.length) skillRows.push({sk, conv:r.title, n:v.length, a:Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10}); }); });
+  skillRows.sort((a,b)=>a.a-b.a);
+  const scenRows = MODULES.map(m=>{ let strong=0, total=0; docs.forEach(d=>{ const s=d.scen&&d.scen[m.id]; if(!s) return; ["r0","r1"].forEach(k=>{ if(s[k]){ total++; if(s[k]==="strong") strong++; } }); }); return {m, strong, total}; }).filter(x=>x.total);
+  const focus = `<div class="learn">
+    <div class="card"><h4>Lowest practice skills</h4>${skillRows.length?`<ul class="plain">${skillRows.slice(0,4).map(x=>`<li><b>${esc(x.sk)}</b> · ${x.a}/3 <span class="note">(${esc(x.conv)}, ${x.n} leader${x.n===1?"":"s"})</span></li>`).join("")}</ul>`:`<p class="note">Appears once leaders complete scored practice conversations.</p>`}</div>
+    <div class="card"><h4>Scenario choices by module</h4>${scenRows.length?`<ul class="plain">${scenRows.map(x=>`<li><b>${x.m.short}</b> · ${Math.round(x.strong/x.total*100)}% strong choices <span class="note">(${x.total} choices)</span></li>`).join("")}</ul>`:`<p class="note">Appears once leaders work through scenarios.</p>`}</div>
+  </div>`;
+  const grid = `<div class="hm-wrap"><table class="hm"><thead><tr><th>Leader</th>${MODULES.map(m=>`<th title="${esc(m.short)}">${m.weeks.replace("Weeks ","Wk ").replace("Week ","Wk ")}</th>`).join("")}<th>Practice</th><th>Last active</th></tr></thead><tbody>
+    ${docs.map(d=>`<tr class="${dashSel===d.id?"sel":""}"><th><button class="linkbtn" data-leader="${esc(d.id)}">${esc(leaderName(d))}</button><small>${esc(d.cohort||"No cohort")} · ${d.overall||0}%</small></th>${MODULES.map(m=>{ const x=(d.modules||[]).find(y=>y.id===m.id); const p=x?x.pct:0; return `<td><span class="cell c${p>=100?4:p>=60?3:p>=30?2:p>0?1:0}" title="${m.short}: ${p}%">${p}</span></td>`; }).join("")}<td>${dAvg(d)??"–"}</td><td>${ago(d.updatedAt)}</td></tr>`).join("")}
+  </tbody></table></div>`;
+  const sel = docs.find(d=>d.id===dashSel);
+  return head + `<div class="tiles">
+      <div class="tile"><span>Average completion</span><b>${comp??0}%</b><small>Across ${docs.length} leader${docs.length===1?"":"s"}</small></div>
+      <div class="tile"><span>Average practice score</span><b>${prac??"–"}</b><small>Of 3, latest scored sessions</small></div>
+      <div class="tile"><span>Growth, Week 0 to 12</span><b>${sign(selfD)} / ${sign(pulseD)}</b><small>Self-assessment / team pulse change</small></div>
+    </div>
+    <section class="blk"><h3>Focus for your next lab</h3>${focus}</section>
+    <section class="blk"><h3>Leaders</h3><p class="lede">Module completion in percent. Select a leader to see their details.</p>${grid}</section>
+    ${sel ? renderLeaderDetail(sel) : `<p class="note">Select a leader above to see their scenario answers, practice feedback, growth and anything they've shared.</p>`}`;
+}
+function renderLeaderDetail(d){
+  const rateChip = r => r ? `<span class="rate ${RATING[r][1]}">${RATING[r][0]}</span>` : "";
+  const scen = MODULES.filter(m=>d.scen&&d.scen[m.id]).map(m=>{ const s=d.scen[m.id];
+    const t0 = s.s0!=null ? m.scenario.steps[0].options[s.s0].t : null, t1 = s.s1!=null ? m.scenario.steps[1].options[s.s1].t : null;
+    return `<div class="card"><span class="eyebrow">${m.weeks} · ${m.short}</span>
+      ${s.say?`<p><b>Wrote first:</b> “${esc(s.say)}”</p>`:`<p class="note">Didn't write a first response.</p>`}
+      ${t0?`<p>${rateChip(s.r0)} ${t0}</p>`:""}${t1?`<p>${rateChip(s.r1)} ${t1}</p>`:""}</div>`; }).join("");
+  const prac = ROLEPLAYS.filter(r=>d.rp&&d.rp[r.id]).map(r=>{ const x=d.rp[r.id], f=x.fb, tr=d.shared&&d.shared.rp&&d.shared.rp[r.id];
+    return `<div class="card prac"><div class="fb-head"><div><span class="eyebrow">${esc(r.who)} · ${(x.history||[]).length} scored session${(x.history||[]).length===1?"":"s"}</span><h4>${r.title}</h4></div><div class="score"><b>${f?rpAvg(f):"–"}</b><span>latest of 3</span></div></div>
+      ${(x.history||[]).length?`<p class="note">History: ${x.history.map(h=>h.avg+" ("+h.mode+", "+h.d+")").join(" → ")}</p>`:""}
+      ${f?`<p><b>Coach summary:</b> ${esc(f.overall||"")}</p><div class="fb-rows">${(f.scores||[]).map(s=>`<div class="fb-row"><div class="dots">${[1,2,3].map(n=>`<i class="${n<=Number(s.score)?"on":""}"></i>`).join("")}</div><div><b>${esc(s.skill)}</b><p>${esc(s.evidence)}</p>${s.tip?`<p class="tip">${esc(s.tip)}</p>`:""}</div></div>`).join("")}</div>
+      ${f.hidden?`<p><b>Uncovered the real issue?</b> ${esc(f.hidden)}</p>`:""}${f.next?`<p><b>Practice next:</b> ${esc(f.next)}</p>`:""}`:""}
+      ${tr?`<details><summary>Shared conversation (${esc(tr.at)})</summary><div class="chat-log static">${(tr.turns||[]).map(t=>`<div class="msg ${t.role==="leader"?"me":"them"}"><span>${t.role==="leader"?"Leader":esc(r.who)}</span><p>${esc(t.text)}</p></div>`).join("")}</div></details>`:`<p class="note">Full conversation not shared.</p>`}</div>`; }).join("");
+  const g = d.growth||{};
+  const growthRows = (labels, a, b) => labels.map((l,i)=>`<div class="gr"><span>${l}</span><span>${(a&&a[i])||"–"}</span><span>${(b&&b[i])||"–"}</span><div>${barPair(Number(a&&a[i])||0, Number(b&&b[i])||0, 5)}</div></div>`).join("");
+  const refl = Object.entries((d.shared&&d.shared.refl)||{}).map(([id,v])=>{ let q=id, mod=""; MODULES.forEach(m=>m.reflect.forEach(r=>{ if(r.id===id){ q=r.q; mod=m.short; } })); return `<div class="card"><span class="eyebrow">${esc(mod)} · shared ${esc(v.at)}</span><h4>${q}</h4><p>${esc(v.text)}</p></div>`; }).join("");
+  return `<section class="blk detail" id="dash-detail">
+    <div class="detail-head"><div><span class="eyebrow">${esc(d.cohort||"No cohort")} · last active ${ago(d.updatedAt)}</span><h3>${esc(leaderName(d))}</h3></div><div class="score"><b>${d.overall||0}%</b><span>complete</span></div></div>
+    <p class="note">Currently on: ${esc(currentModule(d))}</p>
+    <h4 class="dh">Scenario choices</h4>${scen?`<div class="learn">${scen}</div>`:`<p class="note">No scenarios worked yet.</p>`}
+    <h4 class="dh">Practice studio</h4>${prac?`<div class="stack">${prac}</div>`:`<p class="note">No scored practice conversations yet.</p>`}
+    <h4 class="dh">Growth</h4>
+    <div class="gtable"><div class="gh"><span>Self-assessment</span><span>Week 0</span><span>Week 12</span><span></span></div>${growthRows(SELF_SKILLS, g.self0, g.self12)}</div>
+    <div class="gtable" style="margin-top:12px"><div class="gh"><span>Team pulse</span><span>Week 0</span><span>Week 12</span><span></span></div>${growthRows(PULSE_Q, g.pulse0, g.pulse12)}<div class="gr"><span><b>Responses</b></span><span>${esc(g.n0||"–")}</span><span>${esc(g.n12||"–")}</span><div></div></div></div>
+    <h4 class="dh">Shared reflections</h4>${refl?`<div class="stack">${refl}</div>`:`<p class="note">Nothing shared yet. Reflections stay private unless the leader shares them.</p>`}
+  </section>`;
+}
+</script>
