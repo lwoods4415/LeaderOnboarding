@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { ModulePage } from "@/components/module/ModulePage";
 import { MODULES, moduleById } from "@/content";
 
@@ -12,7 +13,16 @@ export async function generateMetadata({ params }: PageProps<"/module/[id]">): P
   return { title: m ? `${m.weeks}: ${m.short}` : "Not found" };
 }
 
-export default async function Page({ params }: PageProps<"/module/[id]">) {
+// The URL is read inside Suspense so the shared page shell stays instant to navigate to.
+export default function Page({ params }: PageProps<"/module/[id]">) {
+  return (
+    <Suspense fallback={null}>
+      <Module params={params} />
+    </Suspense>
+  );
+}
+
+async function Module({ params }: { params: PageProps<"/module/[id]">["params"] }) {
   const { id } = await params;
   if (!moduleById(id)) notFound();
   return <ModulePage id={id} />;

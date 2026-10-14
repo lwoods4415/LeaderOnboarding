@@ -74,9 +74,10 @@ export function Scenario({ m }: { m: Module }) {
               <div><button className="btn" onClick={reset}>Try the scenario again</button></div>
             </>
           ) : null}
+          {/* Like the reference, the note only appears once the options are showing. */}
+          {scn.note ? <p className="note" {...raw(scn.note)} /> : null}
         </>
       )}
-      {scn.note ? <p className="note" {...raw(scn.note)} /> : null}
     </div>
   );
 }
