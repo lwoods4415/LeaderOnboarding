@@ -1,5 +1,6 @@
 "use server";
 // Admin-only actions. Each one checks the caller is the active admin before using the secret key.
+import { headers } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -62,8 +63,9 @@ export async function inviteLeader(input: { name: string; email: string; cohortI
   const { data: existing } = await admin.from("profiles").select("id").eq("email", email).maybeSingle();
   if (existing) return fail("That email has already been invited.");
 
-  const site = process.env.SITE_URL;
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, site ? { redirectTo: site } : undefined);
+  const h = await headers();
+  const site = process.env.SITE_URL || h.get("origin") || `https://${h.get("host")}`;
+  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo: `${site}/auth/callback` });
   if (error || !data.user) {
     if (error?.status === 429) return fail("Too many emails sent recently. Wait a few minutes and try again.");
     return fail(`Couldn't send the invite: ${error?.message ?? "unknown error"}.`);

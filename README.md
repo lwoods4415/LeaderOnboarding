@@ -25,12 +25,14 @@ Set these in `.env.local` for local work and in Vercel → Project → Settings 
    Email stays enabled. Leaders can only get in after you invite them.
 3. **Links:** Authentication → URL Configuration.
    - Site URL: the production address, e.g. `https://leader-onboarding-three.vercel.app`
-   - Redirect URLs: add the production address and `http://localhost:3000`.
-4. **Email templates:** Authentication → Emails → Templates. Replace the **Magic link** template with
-   `supabase/email-templates/magic-link.html` and the **Invite user** template with `supabase/email-templates/invite.html`.
-   They send people to `/auth/confirm`, which works even if they open the email on a different device.
-5. **Make yourself the admin (once).** In Authentication → Users → Add user → **Send invitation**, enter your email
-   and accept the invite. Then in the SQL Editor run, with your own details:
+   - Redirect URLs: add `https://leader-onboarding-three.vercel.app/**` and `http://localhost:3000/**`.
+4. **Make yourself the admin (once).** With `.env.local` filled in, run:
+
+   ```bash
+   node --env-file=.env.local scripts/make-admin.mjs you@example.com "Your Name"
+   ```
+
+   Or in the SQL Editor, after inviting yourself from Authentication → Users:
 
    ```sql
    insert into public.profiles (id, email, name, role)
@@ -38,7 +40,13 @@ Set these in `.env.local` for local work and in Vercel → Project → Settings 
    on conflict (id) do update set role = 'admin', active = true;
    ```
 
-   The app never lets anyone change a role. This SQL step is the only way to make an admin.
+   The app never lets anyone change a role. These are the only ways to make an admin.
+
+### How sign-in links work
+
+Sign-in and invite emails use Supabase's standard templates. The link carries the session to
+`/auth/callback`, so it works even when a leader opens the email on a different device. Sign-in emails
+are sent from the server (`app/(auth)/signin/actions.ts`) for that reason.
 
 ### Custom email (SMTP)
 
@@ -47,6 +55,9 @@ pilot cohort, connect a real email provider (for example Resend, Postmark or Ama
 Authentication → Emails → SMTP Settings → enable custom SMTP and enter the provider's host, port, username,
 password and a sender address on a domain you own. Then raise the email rate limit under Authentication →
 Rate Limits. Send yourself a magic link to check it arrives.
+
+With custom SMTP connected you can also brand the emails: Authentication → Emails → Templates. Starting
+points are in `supabase/email-templates/` (they link to `/auth/confirm`, which also works across devices).
 
 ## Privacy model
 

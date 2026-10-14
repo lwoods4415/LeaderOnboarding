@@ -1,12 +1,19 @@
 "use client";
-import { useState, useSyncExternalStore } from "react";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { requestSignInLink } from "./actions";
 
 type State = "idle" | "sending" | "sent" | "busy" | "failed";
 
 export function SignInForm() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<State>("idle");
+  const router = useRouter();
+
+  // A sign-in link that lands here (e.g. an invite sent from the Supabase dashboard) still signs in.
+  useEffect(() => {
+    if (window.location.hash.includes("access_token=")) router.replace("/auth/callback" + window.location.hash);
+  }, [router]);
   // The page is static, so the "?error=link" from a used or expired link is read in the browser.
   const linkError = useSyncExternalStore(
     () => () => {},
@@ -18,14 +25,11 @@ export function SignInForm() {
     e.preventDefault();
     if (!email.trim()) return;
     setState("sending");
-    const { error } = await supabaseBrowser().auth.signInWithOtp({
-      email: email.trim(),
-      options: { shouldCreateUser: false, emailRedirectTo: window.location.origin },
-    });
-    if (error?.status === 429) return setState("busy");
-    // Uninvited addresses get the same message, so the page never reveals who is in the program.
-    if (error && error.status !== 400 && error.status !== 422) return setState("failed");
-    setState("sent");
+    try {
+      setState(await requestSignInLink(email));
+    } catch {
+      setState("failed");
+    }
   }
 
   if (state === "sent") {
