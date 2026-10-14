@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { MODULES, ROLEPLAYS } from "@/content";
 import { modProgress, overall } from "@/lib/progress";
 import { useLeader } from "@/lib/store";
+import { useProfile } from "./Account";
 import { Ring } from "./ui";
 
 function Item({ href, t, w, pct, current }: { href: string; t: string; w?: string; pct?: number; current: boolean }) {
@@ -20,6 +21,7 @@ function Item({ href, t, w, pct, current }: { href: string; t: string; w?: strin
 export function Rail() {
   const s = useLeader();
   const path = usePathname();
+  const isAdmin = useProfile()?.role === "admin";
   const rpDone = ROLEPLAYS.filter((r) => s.rp[r.id]?.fb).length;
   const at = (href: string) => path === href;
 
@@ -35,6 +37,7 @@ export function Rail() {
       <div className="grp">Start here</div>
       <Item href="/" t="Program overview" w="How it works" pct={overall(s)} current={at("/")} />
       <Item href="/growth" t="My growth" w="Week 0 and Week 12" current={at("/growth")} />
+      {isAdmin ? <Item href="/admin" t="Leaders and cohorts" w="Invites and access" current={at("/admin")} /> : null}
       <div className="grp">Modules</div>
       {MODULES.map((m) => (
         <Item key={m.id} href={`/module/${m.id}`} t={m.short} w={m.weeks} pct={modProgress(s, m).pct} current={at(`/module/${m.id}`)} />

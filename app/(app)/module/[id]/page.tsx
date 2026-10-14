@@ -4,6 +4,9 @@ import { Suspense } from "react";
 import { ModulePage } from "@/components/module/ModulePage";
 import { MODULES, moduleById } from "@/content";
 
+// All seven modules are known, so every module page is fully prerendered.
+export const ensureStatic = "navigation";
+
 export function generateStaticParams() {
   return MODULES.map((m) => ({ id: m.id }));
 }

@@ -3,14 +3,15 @@ import Link from "next/link";
 import { MODULES, PROGRAM } from "@/content";
 import { raw } from "@/lib/html";
 import { modProgress, overall } from "@/lib/progress";
-import type { LeaderState } from "@/lib/state";
 import { update, useLeader } from "@/lib/store";
+import { useProfile } from "../Account";
 import { Ring } from "../ui";
 
-type MeKey = keyof LeaderState["me"];
+type MeKey = "start" | "leader";
 
 export function Overview() {
   const s = useLeader();
+  const profile = useProfile();
   const pct = overall(s);
   const me = (key: MeKey) => ({
     value: s.me[key] ?? "",
@@ -50,10 +51,10 @@ export function Overview() {
         <h3>Your details</h3>
         <div className="bigpct"><Ring pct={pct} /><div><b>{pct}% complete</b><span className="note">Counts scenarios, practice conversations, practice items and reflections.</span></div></div>
         <div className="me">
-          <label htmlFor="me-name">Your name<input type="text" id="me-name" placeholder="First and last name" {...me("name")} /></label>
+          <label htmlFor="me-name">Your name<input type="text" id="me-name" readOnly value={profile?.name ?? ""} /></label>
           <label htmlFor="me-start">Start date in role<input type="date" id="me-start" {...me("start")} /></label>
           <label htmlFor="me-lead">Your leader<input type="text" id="me-lead" placeholder={PROGRAM.sponsorPlaceholder} {...me("leader")} /></label>
-          <label htmlFor="me-cohort">Your cohort<input type="text" id="me-cohort" placeholder="e.g. Fall 2026 cohort" {...me("cohort")} /></label>
+          <label htmlFor="me-cohort">Your cohort<input type="text" id="me-cohort" readOnly value={profile?.cohort ?? ""} /></label>
         </div>
       </section>
       <section className="blk"><div className="visible"><span className="tag">What your program leader can see</span>

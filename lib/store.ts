@@ -1,44 +1,71 @@
 "use client";
-// On-device progress store (Phase 1). Pages read with useLeader() and write with update().
-// Phase 2 keeps this API and adds a debounced save to the database behind it.
+// Progress store. Pages read with useLeader() and write with update().
+// Each signed-in leader has their own on-device copy, so typing never waits on the network
+// and nothing is lost on a brief disconnect. lib/sync.ts saves it to the database.
 import { useSyncExternalStore } from "react";
 import { STORAGE_KEY } from "@/program.config";
 import { blankState, normalize, type LeaderState } from "./state";
 
 const SERVER_SNAPSHOT = blankState();
 let state: LeaderState = SERVER_SNAPSHOT;
-let loaded = false;
+let userId: string | null = null;
 let timer: ReturnType<typeof setTimeout> | undefined;
+let listening = false;
 const listeners = new Set<() => void>();
+const changeListeners = new Set<() => void>();
 
-function readStorage() {
+const keyFor = (id: string) => `${STORAGE_KEY}:${id}`;
+
+function readCache(id: string) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(keyFor(id));
     return raw ? normalize(JSON.parse(raw)) : blankState();
   } catch {
     return blankState();
   }
 }
 
-function writeStorage() {
+function writeCache() {
   clearTimeout(timer);
   timer = undefined;
+  if (!userId) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(keyFor(userId), JSON.stringify(state));
   } catch {}
 }
 
-function ensureLoaded() {
-  if (loaded || typeof window === "undefined") return;
-  loaded = true;
-  state = readStorage();
-  window.addEventListener("pagehide", () => timer && writeStorage());
+const notify = () => listeners.forEach((l) => l());
+
+/** Switch the store to a signed-in leader and load their on-device copy. */
+export function setUser(id: string) {
+  if (userId === id) return;
+  userId = id;
+  state = readCache(id);
+  notify();
+  if (listening) return;
+  listening = true;
+  window.addEventListener("pagehide", () => timer && writeCache());
   // Keep two open tabs in step.
   window.addEventListener("storage", (e) => {
-    if (e.key !== STORAGE_KEY) return;
-    state = readStorage();
-    listeners.forEach((l) => l());
+    if (!userId || e.key !== keyFor(userId)) return;
+    state = readCache(userId);
+    notify();
   });
+}
+
+export const getState = () => state;
+
+/** Replace everything with a newer copy from the database. Doesn't trigger a save back. */
+export function replaceState(next: LeaderState) {
+  state = next;
+  writeCache();
+  notify();
+}
+
+/** Runs after every change a leader makes (used to save to the database). */
+export function onLocalChange(fn: () => void) {
+  changeListeners.add(fn);
+  return () => changeListeners.delete(fn);
 }
 
 function subscribe(listener: () => void) {
@@ -47,21 +74,18 @@ function subscribe(listener: () => void) {
 }
 
 export function useLeader(): LeaderState {
-  return useSyncExternalStore(
-    subscribe,
-    () => (ensureLoaded(), state),
-    () => SERVER_SNAPSHOT,
-  );
+  return useSyncExternalStore(subscribe, getState, () => SERVER_SNAPSHOT);
 }
 
 /** Change progress. `fn` edits a copy; the store saves it shortly after. */
 export function update(fn: (draft: LeaderState) => void) {
-  ensureLoaded();
+  if (!userId) return;
   const next = structuredClone(state);
   fn(next);
   next.updatedAt = Date.now();
   state = next;
-  listeners.forEach((l) => l());
+  notify();
   clearTimeout(timer);
-  timer = setTimeout(writeStorage, 300);
+  timer = setTimeout(writeCache, 300);
+  changeListeners.forEach((l) => l());
 }
