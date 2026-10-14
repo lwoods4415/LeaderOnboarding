@@ -3,6 +3,9 @@ import { Planner } from "@/components/Planner";
 import { DOC_TOOL, ESCALATE, PATHWAY } from "@/content";
 import { raw } from "@/lib/html";
 
+// Shown only once the signed-in account has loaded (see AccountProvider), so it can't be validated for instant navigation.
+export const instant = false;
+
 export const metadata: Metadata = { title: "Performance pathway" };
 
 export default function Page() {

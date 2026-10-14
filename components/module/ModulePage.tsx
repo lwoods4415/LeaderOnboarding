@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
+import { useEffect } from "react";
 import { MEASURES, MODULES, PROGRAM, roleplayFor, type Module, type Roleplay } from "@/content";
+import { PROGRAM_NAME } from "@/program.config";
 import { raw } from "@/lib/html";
 import { modProgress, rpAvg } from "@/lib/progress";
 import { update, useLeader } from "@/lib/store";
@@ -16,6 +18,8 @@ export function ModulePage({ id }: { id: string }) {
   const p = modProgress(s, m);
   const rp = roleplayFor(m.id);
   const prev = MODULES[i - 1], next = MODULES[i + 1];
+  // Set here rather than in generateMetadata, which would block prefetching on URL data.
+  useEffect(() => { document.title = `${m.weeks}: ${m.short} · ${PROGRAM_NAME}`; }, [m]);
   return (
     <>
       <div className="mhead">

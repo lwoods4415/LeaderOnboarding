@@ -2,7 +2,7 @@
 // Loads the signed-in leader's profile, starts saving their progress, and shares the profile with pages.
 import { useRouter } from "next/navigation";
 import { createContext, use, useEffect, useState } from "react";
-import { startSync, useSaveStatus } from "@/lib/sync";
+import { flushNow, startSync, useSaveStatus } from "@/lib/sync";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 export type Profile = {
@@ -59,7 +59,7 @@ function Notice({ title, body }: { title: string; body: string }) {
     <div className="empty-dash">
       <h3>{title}</h3>
       <p>{body}</p>
-      <form action="/auth/signout" method="post"><button className="btn">Sign out</button></form>
+      <SignOut className="btn" />
     </div>
   );
 }
@@ -71,7 +71,20 @@ export function AccountStatus() {
   return (
     <div className="acct">
       <div className={`status${s === "saved" || s === "saving" ? " ok" : ""}`} role="status"><i></i><span>{text}</span></div>
-      <form action="/auth/signout" method="post"><button className="linkbtn">Sign out</button></form>
+      <SignOut className="linkbtn" />
     </div>
+  );
+}
+
+function SignOut({ className }: { className: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  return (
+    <button className={className} disabled={busy} onClick={async () => {
+      setBusy(true);
+      await flushNow();
+      await supabaseBrowser().auth.signOut();
+      router.replace("/signin");
+    }}>Sign out</button>
   );
 }

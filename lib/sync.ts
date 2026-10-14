@@ -114,11 +114,18 @@ async function flush() {
   }
 }
 
+/** Save anything pending right away (before signing out). */
+export async function flushNow() {
+  clearTimeout(timer);
+  await flush();
+}
+
 let lastTouch = 0;
 function touch() {
   if (Date.now() - lastTouch < 10 * 60 * 1000) return;
   lastTouch = Date.now();
-  void supabaseBrowser().rpc("touch_last_active");
+  // A query only runs once awaited or then-ed.
+  supabaseBrowser().rpc("touch_last_active").then(() => {}, () => {});
 }
 
 let wired = false;

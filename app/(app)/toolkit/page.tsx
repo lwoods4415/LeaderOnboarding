@@ -4,6 +4,9 @@ import { Planner } from "@/components/Planner";
 import { BOOKS, TOOLS } from "@/content";
 import { raw } from "@/lib/html";
 
+// Shown only once the signed-in account has loaded (see AccountProvider), so it can't be validated for instant navigation.
+export const instant = false;
+
 export const metadata: Metadata = { title: "Toolkit" };
 
 export default function Page() {

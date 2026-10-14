@@ -3,6 +3,9 @@ import { CheckRow } from "@/components/ui";
 import { SPONSOR as s } from "@/content";
 import { raw } from "@/lib/html";
 
+// Shown only once the signed-in account has loaded (see AccountProvider), so it can't be validated for instant navigation.
+export const instant = false;
+
 export const metadata: Metadata = { title: "For your leader" };
 
 export default function Page() {

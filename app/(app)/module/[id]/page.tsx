@@ -1,19 +1,16 @@
-import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ModulePage } from "@/components/module/ModulePage";
 import { MODULES, moduleById } from "@/content";
+
+// Shown only once the signed-in account has loaded (see AccountProvider), so it can't be validated for instant navigation.
+export const instant = false;
 
 // All seven modules are known, so every module page is fully prerendered.
 export const ensureStatic = "navigation";
 
 export function generateStaticParams() {
   return MODULES.map((m) => ({ id: m.id }));
-}
-
-export async function generateMetadata({ params }: PageProps<"/module/[id]">): Promise<Metadata> {
-  const m = moduleById((await params).id);
-  return { title: m ? `${m.weeks}: ${m.short}` : "Not found" };
 }
 
 // The URL is read inside Suspense so the shared page shell stays instant to navigate to.
