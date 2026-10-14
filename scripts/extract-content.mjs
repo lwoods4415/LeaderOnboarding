@@ -19,9 +19,14 @@ emit("modules.ts", ["Module", "Measure"], [
   ["MODULES", "Module[]", d.FT_MODULES],
   ["MEASURES", "Measure[]", d.FT_MEASURES],
 ]);
+// Persona and hidden context go in a separate file that only server code imports,
+// so leaders can't read what a character is holding back from the browser.
 emit("roleplays.ts", ["Roleplay", "Difficulty"], [
-  ["ROLEPLAYS", "Roleplay[]", d.ROLEPLAYS],
+  ["ROLEPLAYS", "Roleplay[]", d.ROLEPLAYS.map((r) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== "persona" && k !== "hidden")))],
   ["MODES", "Record<Difficulty, string>", d.MODES],
+]);
+emit("roleplay-secrets.ts", ["RoleplaySecret"], [
+  ["ROLEPLAY_SECRETS", "Record<string, RoleplaySecret>", Object.fromEntries(d.ROLEPLAYS.map((r) => [r.id, { persona: r.persona, hidden: r.hidden }]))],
 ]);
 emit("pathway.ts", ["PathwayStage"], [
   ["PATHWAY", "PathwayStage[]", d.PATHWAY],

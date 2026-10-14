@@ -6,14 +6,14 @@ import { loadReference } from "./load-reference.mjs";
 
 const { data: ref } = loadReference();
 const load = (f) => import(new URL(`../content/leading-people/${f}`, import.meta.url));
-const [mod, rp, path, growth, tool, prog] = await Promise.all(
-  ["modules.ts", "roleplays.ts", "pathway.ts", "growth.ts", "toolkit.ts", "program.ts"].map(load),
+const [mod, rp, path, growth, tool, prog, secrets] = await Promise.all(
+  ["modules.ts", "roleplays.ts", "pathway.ts", "growth.ts", "toolkit.ts", "program.ts", "roleplay-secrets.ts"].map(load),
 );
 
 const ported = {
   FT_MODULES: mod.MODULES,
   FT_MEASURES: mod.MEASURES,
-  ROLEPLAYS: rp.ROLEPLAYS,
+  ROLEPLAYS: rp.ROLEPLAYS.map((r) => ({ ...r, ...secrets.ROLEPLAY_SECRETS[r.id] })),
   MODES: rp.MODES,
   PATHWAY: path.PATHWAY,
   ESCALATE: path.ESCALATE,

@@ -17,10 +17,16 @@ Set these in `.env.local` for local work and in Vercel → Project → Settings 
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | browser and server | No, public (row-level security protects the data) |
 | `SUPABASE_SECRET_KEY` | server only: invites and access changes | **Yes, server-only.** Never prefix with `NEXT_PUBLIC_` |
 | `SITE_URL` | server only: the link in invite emails | No |
+| `ANTHROPIC_API_KEY` | server only: the practice partner | **Yes, server-only** |
+| `PRACTICE_MESSAGE_MODEL` | optional; default `claude-haiku-5-5` | No |
+| `PRACTICE_FEEDBACK_MODEL` | optional; default `claude-sonnet-5-5` | No |
+| `PRACTICE_MESSAGES_PER_DAY` | optional; default `150` per leader | No |
+| `PRACTICE_FEEDBACK_PER_DAY` | optional; default `15` per leader | No |
 
 ## Supabase setup (one time)
 
 1. **Database:** open Supabase → SQL Editor → New query, paste all of `supabase/migrations/0001_init.sql`, and run it.
+   Then do the same for each later file in `supabase/migrations/`, in number order.
 2. **Invite-only sign-in:** Authentication → Sign In / Providers → turn **off** "Allow new users to sign up".
    Email stays enabled. Leaders can only get in after you invite them.
 3. **Links:** Authentication → URL Configuration.
@@ -72,6 +78,18 @@ Enforced by row-level security in `supabase/migrations/0001_init.sql`, not just 
 
 `npm run test:rls` signs in as two throwaway leaders and a throwaway admin and checks these rules (it needs
 `SUPABASE_SECRET_KEY` in `.env.local`, and deletes the test accounts when it finishes).
+
+## Practice partner
+
+`app/api/practice/message` streams the character's reply; `app/api/practice/feedback` returns scored feedback.
+Both need a signed-in, active leader. The character's instructions are built on the server from
+`content/leading-people/prompts.ts` and `roleplay-secrets.ts`, so the persona and hidden context never reach
+the browser. Only conversation text is sent to Claude. Limits: 30 leader turns per conversation, 2,000
+characters per message, and the daily per-leader limits above. Every call is recorded in `usage_log`
+(user, route, model, tokens) for cost per cohort. Feedback uses Anthropic's server-side fallback
+(`fallbacks: "default"`), so a wrongly declined review is retried on another model.
+
+After a build, `npm run check:bundle` confirms no secret key or backstory is in the browser code.
 
 ## Development
 

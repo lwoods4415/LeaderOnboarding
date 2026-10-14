@@ -40,10 +40,11 @@ export type Roleplay = {
   role: string;
   brief: string;
   goal: string;
-  persona: string;
-  hidden: string;
   skills: string[];
 };
+
+/** Server-only: who the character is and what they hold back. Never sent to the browser. */
+export type RoleplaySecret = { persona: string; hidden: string };
 
 export type Difficulty = "cooperative" | "realistic" | "tough";
 
