@@ -2,7 +2,8 @@
 // Loads the signed-in leader's profile, starts saving their progress, and shares the profile with pages.
 import { useRouter } from "next/navigation";
 import { createContext, use, useEffect, useState } from "react";
-import { flushNow, startSync, useSaveStatus } from "@/lib/sync";
+import { forgetDevice } from "@/lib/store";
+import { flushNow, startSync, stopSync, useSaveStatus } from "@/lib/sync";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
 export type Profile = {
@@ -82,7 +83,14 @@ function SignOut({ className }: { className: string }) {
   return (
     <button className={className} disabled={busy} onClick={async () => {
       setBusy(true);
-      await flushNow();
+      const saved = await flushNow();
+      if (!saved && !confirm("Some changes haven't reached your account yet, maybe because you're offline. Sign out anyway? They'll stay on this device and save the next time you sign in here.")) {
+        setBusy(false);
+        return;
+      }
+      stopSync();
+      // Don't leave a copy of the leader's progress on the device once it's safely saved.
+      if (saved) forgetDevice();
       await supabaseBrowser().auth.signOut();
       router.replace("/signin");
     }}>Sign out</button>

@@ -17,8 +17,22 @@ export function Overview() {
     value: s.me[key] ?? "",
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => { const v = e.target.value; update((d) => { d.me[key] = v; }); },
   });
+  // A new leader who hasn't started anything yet gets a short welcome with the first two steps.
+  const isNew = !s.updatedAt;
+  const firstName = profile?.name.split(" ")[0];
   return (
     <>
+      {isNew ? (
+        <section className="blk"><div className="checkin">
+          <h3>Welcome{firstName ? `, ${firstName}` : ""}</h3>
+          <p style={{ marginTop: 6 }}>Here&apos;s how to start:</p>
+          <ul>
+            <li><Link href="/growth" scroll={false}>Take the Week 0 self-assessment</Link> on the My growth page. It takes about five minutes.</li>
+            <li><Link href="/module/m0" scroll={false}>Open Week 0: Before day one</Link> and work through it at your own pace.</li>
+          </ul>
+          <p className="note" style={{ marginTop: 10 }}>Your progress saves to your account as you go, so you can stop at any time and pick up on another device.</p>
+        </div></section>
+      ) : null}
       <div className="hero">
         <div className="eyebrow" {...raw(PROGRAM.hero.eyebrow)} />
         <h2 {...raw(`${PROGRAM.hero.h2a} <span>${PROGRAM.hero.h2b}</span>`)} />
@@ -66,7 +80,7 @@ export function Overview() {
         </div>
         <p className="note">Your progress is saved in a secure database that your program leader manages. The program dashboard shows only the items above. Private items are stored so they&apos;re here when you come back. As the database owner, your program leader could technically access them, but commits not to view them.</p>
         <p className="note">Practice conversations are sent to Anthropic&apos;s Claude to create the character&apos;s replies and your feedback. Your name and email are never sent.</p>
-        <p className="note">Your program leader uses this to plan the leader labs and support you. It isn&apos;t a performance evaluation.</p></div></section>
+        <p className="note">Your program leader uses this to plan the leader labs and support you. It isn&apos;t a performance evaluation. <Link href="/privacy">More about your data</Link></p></div></section>
       <div className="pager">
         <Link className="btn" href="/growth" scroll={false}>Take the Week 0 self-assessment</Link>
         <Link className="btn primary" href="/module/m0" scroll={false}>Start with Week 0 →</Link>

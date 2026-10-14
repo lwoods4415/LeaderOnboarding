@@ -115,10 +115,18 @@ async function flush() {
   }
 }
 
-/** Save anything pending right away (before signing out). */
+/** Save anything pending right away (before signing out). True if everything reached the database. */
 export async function flushNow() {
   clearTimeout(timer);
+  for (let i = 0; i < 40 && writing; i++) await new Promise((r) => setTimeout(r, 150));
   await flush();
+  return status === "saved";
+}
+
+/** Stop saving for this leader (after signing out). */
+export function stopSync() {
+  clearTimeout(timer);
+  uid = null;
 }
 
 let lastTouch = 0;

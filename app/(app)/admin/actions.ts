@@ -93,3 +93,14 @@ export async function setAccess(userId: string, active: boolean): Promise<Result
   if (error) return fail("Couldn't change access. Try again.");
   return { ok: true, message: active ? "Access restored. They can sign in again." : "Access removed. Their progress is kept." };
 }
+
+/** Permanently deletes a leader and everything saved for them. Only after their access has been removed. */
+export async function deleteLeader(userId: string): Promise<Result> {
+  const { admin, myId } = await requireAdmin();
+  if (userId === myId) return fail("You can't delete your own account here.");
+  const { data: p } = await admin.from("profiles").select("active").eq("id", userId).maybeSingle();
+  if (p?.active) return fail("Remove their access first, then delete.");
+  // Deleting the sign-in account removes their profile, progress, private data and shared items with it.
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  return error ? fail("Couldn't delete the leader. Try again.") : { ok: true, message: "Leader and all their data permanently deleted." };
+}

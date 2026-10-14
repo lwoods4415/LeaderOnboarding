@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { createCohort, inviteLeader, loadAdminData, moveLeader, setAccess, type AdminData, type Result } from "@/app/(app)/admin/actions";
+import { createCohort, deleteLeader, inviteLeader, loadAdminData, moveLeader, setAccess, type AdminData, type Result } from "@/app/(app)/admin/actions";
 import { useProfile } from "../Account";
 
 const ago = (ts: string | null) => {
@@ -82,7 +82,10 @@ export function Admin() {
                     {l.id === profile.id ? <span className="note">You</span>
                       : l.active
                         ? <button className="btn ghost" disabled={busy} onClick={() => { if (confirm(`Remove ${l.name || l.email}'s access? Their progress is kept and you can restore it later.`)) run(() => setAccess(l.id, false)); }}>Remove access</button>
-                        : <button className="btn ghost" disabled={busy} onClick={() => run(() => setAccess(l.id, true))}>Restore access</button>}
+                        : <>
+                            <button className="btn ghost" disabled={busy} onClick={() => run(() => setAccess(l.id, true))}>Restore access</button>{" "}
+                            <button className="btn ghost" disabled={busy} onClick={() => { if (confirm(`Permanently delete ${l.name || l.email} and everything they saved? This can't be undone.`)) run(() => deleteLeader(l.id)); }}>Delete permanently</button>
+                          </>}
                   </td>
                 </tr>
               ))}

@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
 
 // API routes check the session themselves and answer with a plain-language error instead of a redirect.
-const PUBLIC = ["/signin", "/auth/", "/api/"];
+const PUBLIC = ["/signin", "/auth/", "/api/", "/privacy"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });

@@ -50,9 +50,15 @@ Set these in `.env.local` for local work and in Vercel → Project → Settings 
 
 ### How sign-in links work
 
-Sign-in and invite emails use Supabase's standard templates. The link carries the session to
-`/auth/callback`, so it works even when a leader opens the email on a different device. Sign-in emails
-are sent from the server (`app/(auth)/signin/actions.ts`) for that reason.
+Sign-in emails are sent from the server (`app/(auth)/signin/actions.ts`) so every link works even when a
+leader opens the email on a different device.
+
+- **With Supabase's standard templates** (before custom SMTP), links go to `/auth/callback`, which carries the
+  session in the link.
+- **With the custom templates** in `supabase/email-templates/` (needs custom SMTP), links go to `/auth/confirm`,
+  which signs in only when the leader selects **Sign in**. Work email systems often open links to scan them,
+  and that would otherwise use up the one-time link. These emails also include a sign-in code, which leaders
+  can type on the sign-in page instead.
 
 ### Custom email (SMTP)
 
@@ -62,8 +68,9 @@ Authentication → Emails → SMTP Settings → enable custom SMTP and enter the
 password and a sender address on a domain you own. Then raise the email rate limit under Authentication →
 Rate Limits. Send yourself a magic link to check it arrives.
 
-With custom SMTP connected you can also brand the emails: Authentication → Emails → Templates. Starting
-points are in `supabase/email-templates/` (they link to `/auth/confirm`, which also works across devices).
+With custom SMTP connected, paste the templates: Authentication → Emails → Templates → **Magic link** gets
+`supabase/email-templates/magic-link.html` and **Invite user** gets `supabase/email-templates/invite.html`.
+Recommended for pilots where leaders use work email addresses.
 
 ## Privacy model
 
@@ -103,9 +110,21 @@ npm run dev
 ## Launch checklist
 
 - [ ] Custom SMTP connected and a magic link received at a non-test address
+- [ ] Custom email templates pasted in (see Custom email above) and a sign-in tested from a work email address
 - [ ] Spending limit set in the Anthropic Console
+- [ ] `ANTHROPIC_API_KEY` set in Vercel, and a practice conversation tested on the live site
 - [ ] Row-level security tests passing (`npm run test:rls`)
 - [ ] Admin role set on my account only
-- [ ] Privacy wording approved by me
+- [ ] Privacy wording approved by me (Overview panel and `/privacy` page)
 - [ ] Every page checked on a phone
 - [ ] Pilot cohort created and leaders invited
+
+### Good to know
+
+- **Supabase free plan pauses a project after about a week with no activity.** That's unlikely during a
+  cohort, but between cohorts sign in once a week, or upgrade to Supabase Pro.
+- **Removing a leader** (Leaders and cohorts → Remove access) blocks sign-in and keeps their data.
+  **Delete permanently** then removes the account and everything saved in it.
+- **Signing out** removes the leader's on-device copy once everything has saved.
+- Error pages: `app/(app)/error.tsx` (inside the app), `app/error.tsx` (sign-in pages), `app/global-error.tsx`
+  (last resort), `app/not-found.tsx`.

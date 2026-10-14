@@ -1,4 +1,4 @@
 <h2>You're invited</h2>
 <p>You've been invited to a 12-week leadership program for new people leaders. Select the link below to sign in. There's no password.</p>
-<p><a href="{{ .RedirectTo }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite">Accept the invite</a></p>
-<p>If the link has expired, go to the program's sign-in page and enter this email address to get a new one.</p>
+<p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite">Accept the invite</a></p>
+<p>If the link has expired, go to {{ .SiteURL }}/signin and enter this email address to get a new sign-in email.</p>

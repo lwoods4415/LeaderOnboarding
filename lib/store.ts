@@ -55,6 +55,18 @@ export function setUser(id: string) {
 
 export const getState = () => state;
 
+/** Remove this leader's on-device copy (on sign-out, once it's safely in the database). */
+export function forgetDevice() {
+  clearTimeout(timer);
+  timer = undefined;
+  if (userId) {
+    try { localStorage.removeItem(keyFor(userId)); } catch {}
+  }
+  userId = null;
+  state = SERVER_SNAPSHOT;
+  notify();
+}
+
 /** Replace everything with a newer copy from the database. Doesn't trigger a save back. */
 export function replaceState(next: LeaderState) {
   state = next;
