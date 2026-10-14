@@ -58,10 +58,14 @@ export function Overview() {
         </div>
       </section>
       <section className="blk"><div className="visible"><span className="tag">What your program leader can see</span>
+        {/* Wording approved by the program owner, 2026-10-14. */}
         <div className="vis-grid">
-          <div><b>Shared automatically</b><ul className="plain"><li>Your name, cohort and progress through each module</li><li>Your scenario answers: what you typed first and the options you chose</li><li>Your Practice studio scores and coach feedback</li><li>Your self-assessment and team pulse numbers</li></ul></div>
-          <div><b>Private unless you choose to share</b><ul className="plain"><li>Your reflections. Each has its own share button.</li><li>Your full practice conversations. Share one from the Practice studio after you get feedback.</li><li>Your planners, notes and trust self-check</li></ul></div>
+          <div><b>Shared automatically</b><ul className="plain"><li>Your name, cohort, progress through each module, and when you were last active</li><li>Your scenario answers: what you typed first, the options you chose, and any later tries</li><li>Your Practice studio scores, score history and coach feedback</li><li>Your self-assessment and team pulse numbers</li></ul></div>
+          <div><b>Private unless you choose to share</b><ul className="plain"><li>Your reflections. Each has its own share button, and you can stop sharing at any time.</li><li>Your full practice conversations. Share one from the Practice studio after you get feedback, and stop sharing at any time.</li></ul>
+            <b style={{ marginTop: 12 }}>Always private</b><ul className="plain"><li>Your planners, documentation builder, trust self-check and &ldquo;Do it for real&rdquo; checklist</li></ul></div>
         </div>
+        <p className="note">Your progress is saved in a secure database that your program leader manages. The program dashboard shows only the items above. Private items are stored so they&apos;re here when you come back. As the database owner, your program leader could technically access them, but commits not to view them.</p>
+        <p className="note">Practice conversations are sent to Anthropic&apos;s Claude to create the character&apos;s replies and your feedback. Your name and email are never sent.</p>
         <p className="note">Your program leader uses this to plan the leader labs and support you. It isn&apos;t a performance evaluation.</p></div></section>
       <div className="pager">
         <Link className="btn" href="/growth" scroll={false}>Take the Week 0 self-assessment</Link>

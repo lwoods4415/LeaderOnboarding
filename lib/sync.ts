@@ -7,6 +7,7 @@ import { useSyncExternalStore } from "react";
 import { MODULES, ROLEPLAYS } from "@/content";
 import { modProgress, overall } from "./progress";
 import { blankState, normalize, type LeaderState, type RpState, type Turn } from "./state";
+import { loadShared } from "./sharing";
 import { getState, onLocalChange, replaceState, setUser } from "./store";
 import { supabaseBrowser } from "./supabase/client";
 
@@ -148,6 +149,7 @@ export async function startSync(userId: string) {
   lastSent = { priv: priv.data ? JSON.stringify(priv.data.data) : "", prog: prog.data ? JSON.stringify(prog.data.data) : "" };
   // Newest copy wins, as on the reference page.
   if (remote.updatedAt > getState().updatedAt) replaceState(remote);
+  await loadShared(userId);
   touch();
   setStatus("saved");
   schedule(0);

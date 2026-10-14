@@ -37,6 +37,7 @@ export function Rail() {
       <div className="grp">Start here</div>
       <Item href="/" t="Program overview" w="How it works" pct={overall(s)} current={at("/")} />
       <Item href="/growth" t="My growth" w="Week 0 and Week 12" current={at("/growth")} />
+      {isAdmin ? <Item href="/dashboard" t="Cohort dashboard" w="Only visible to you" current={at("/dashboard")} /> : null}
       {isAdmin ? <Item href="/admin" t="Leaders and cohorts" w="Invites and access" current={at("/admin")} /> : null}
       <div className="grp">Modules</div>
       {MODULES.map((m) => (

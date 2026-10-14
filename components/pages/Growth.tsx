@@ -122,7 +122,7 @@ export function Growth() {
   );
 }
 
-function Attempt({ m, a, label, said }: { m: Module; a: ScenarioAttempt; label: string; said?: string }) {
+export function Attempt({ m, a, label, said }: { m: Module; a: ScenarioAttempt; label: string; said?: string }) {
   const choice = (step: number, k?: number) => {
     if (k == null) return null;
     const o = m.scenario.steps[step].options[k];

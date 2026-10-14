@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { MODES, MODULES, ROLEPLAYS, type Difficulty } from "@/content";
 import { raw } from "@/lib/html";
 import { rpAvg, today } from "@/lib/progress";
-import { rpState, type Feedback } from "@/lib/state";
+import { shareConversation, unshareConversation } from "@/lib/sharing";
+import { rpState, type Feedback, type Turn } from "@/lib/state";
 import { update, useLeader } from "@/lib/store";
 
 const NOTE = "Practice only. Never type real patient names or details. Your program leader sees your scores and feedback, not the conversation, unless you share it.";
@@ -183,14 +184,49 @@ export function Studio() {
             </div>
             <p className="note" id="rp-msg" role="status">{msg}</p>
           </div>
-          {st.fb ? <FeedbackCard fb={st.fb} /> : null}
+          {st.fb ? <FeedbackCard fb={st.fb} rpId={rp.id} turns={st.turns} /> : null}
         </div>
       </div>
     </>
   );
 }
 
-function FeedbackCard({ fb }: { fb: Feedback }) {
+/** Share the full conversation with the program leader, ported from the reference page's feedback card. */
+function ShareConversation({ rpId, turns }: { rpId: string; turns: Turn[] }) {
+  const shared = useLeader().shared.rp[rpId];
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    setError("");
+    try {
+      await fn();
+    } catch {
+      setError("That didn't go through. Check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="sharebar">
+      {shared ? (
+        <>
+          <span className="shared-on">Shared with your program leader on {shared.at}.</span>
+          <button className="btn ghost" disabled={busy} onClick={() => run(() => shareConversation(rpId, turns))}>Update shared copy</button>
+          <button className="btn ghost" disabled={busy} onClick={() => run(() => unshareConversation(rpId))}>Stop sharing</button>
+        </>
+      ) : (
+        <>
+          <button className="btn" disabled={busy || !turns.length} onClick={() => run(() => shareConversation(rpId, turns))}>Share this conversation with your program leader</button>
+          <span className="note">Your scores and feedback are already visible. This adds the full conversation.</span>
+        </>
+      )}
+      {error ? <span className="msg-err">{error}</span> : null}
+    </div>
+  );
+}
+
+function FeedbackCard({ fb, rpId, turns }: { fb: Feedback; rpId: string; turns: Turn[] }) {
   const avg = rpAvg(fb);
   return (
     <div className="feedback" id="rp-fb">
@@ -207,10 +243,7 @@ function FeedbackCard({ fb }: { fb: Feedback }) {
       {fb.try_this ? <p><b>Try saying:</b> {fb.try_this}</p> : null}
       {fb.hidden != null ? <p><b>Did you uncover what was really going on?</b> {fb.hidden}</p> : null}
       {fb.next ? <p><b>Practice next:</b> {fb.next}</p> : null}
-      <div className="sharebar">
-        <button className="btn" disabled>Share this conversation with your program leader</button>
-        <span className="note">Your scores and feedback are already visible. This adds the full conversation.</span>
-      </div>
+      <ShareConversation rpId={rpId} turns={turns} />
       <p className="note">Try it again on a harder setting, or bring this feedback to your 1:1.</p>
     </div>
   );
