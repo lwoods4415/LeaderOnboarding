@@ -128,6 +128,17 @@ describe("sharing", () => {
   });
 });
 
+describe("usage log", () => {
+  test("leaders can't read or write it; the admin can read it", async () => {
+    const { a, admin } = users;
+    rows(await service.from("usage_log").insert({ user_id: a.id, route: "message", model: "rls-test", input_tokens: 1, output_tokens: 1 }));
+    assert.deepEqual(rows(await a.db.from("usage_log").select("*")), []);
+    assert.ok((await a.db.from("usage_log").insert({ user_id: a.id, route: "message", model: "x" })).error);
+    assert.equal(rows(await admin.db.from("usage_log").select("*").eq("user_id", a.id)).length, 1);
+    await service.from("usage_log").delete().eq("model", "rls-test");
+  });
+});
+
 describe("removed access", () => {
   test("a deactivated leader can't save", async () => {
     const { b } = users;

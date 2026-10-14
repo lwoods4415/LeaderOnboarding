@@ -1,6 +1,7 @@
 // After `npm run build`: confirm nothing secret reached the code sent to browsers.
 // Checks for the Anthropic and Supabase secret keys (by value and by name) and for the
-// role-play backstories, which must stay on the server. Run: node --env-file=.env.local scripts/check-bundle.mjs
+// role-play backstories, which must stay on the server. (The bare "sb_secret_" prefix isn't
+// checked: supabase-js itself contains it to tell key types apart.) Run: node --env-file=.env.local scripts/check-bundle.mjs
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { ROLEPLAY_SECRETS } from "../content/leading-people/roleplay-secrets.ts";
@@ -20,7 +21,6 @@ const needles = [
   ["the name ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"],
   ["the name SUPABASE_SECRET_KEY", "SUPABASE_SECRET_KEY"],
   ["an sk-ant- key", "sk-ant-"],
-  ["an sb_secret_ key", "sb_secret_"],
   ...Object.entries(ROLEPLAY_SECRETS).map(([id, s]) => [`${id} hidden context`, s.hidden.slice(0, 60)]),
 ].filter(([, v]) => v);
 

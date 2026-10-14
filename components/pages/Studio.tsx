@@ -47,14 +47,16 @@ export function Studio() {
     if (leaderTurns >= MAX_LEADER_TURNS) return setMsg(`A conversation can have up to ${MAX_LEADER_TURNS} of your messages. Select "End and get feedback", or "Start over".`);
     const id = rp.id, mode = st.mode;
     const turns = [...st.turns, { role: "leader" as const, text }];
+    const prevFb = st.fb;
     update((d) => { const x = rpState(d, id); x.turns.push({ role: "leader", text }); x.fb = null; });
     setDraft(""); setBusy("reply"); setStreaming(""); setMsg(NOTE);
 
-    // On failure with nothing back yet, take the message out of the conversation and put it back in the box to resend.
+    // On failure with nothing back yet, undo the send: take the message out of the conversation,
+    // bring back any earlier feedback, and put the message back in the box to resend.
     const restore = (why: string) => {
       update((d) => {
         const x = rpState(d, id), last = x.turns[x.turns.length - 1];
-        if (last?.role === "leader" && last.text === text) x.turns.pop();
+        if (last?.role === "leader" && last.text === text) { x.turns.pop(); x.fb = prevFb; }
       });
       setDraft(text);
       setMsg(why);
