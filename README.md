@@ -1,6 +1,6 @@
 # Leading People protocol app
 
-A 12-week onboarding protocol for first-time people leaders. Next.js (App Router) on Vercel, Supabase for
+Live at https://www.growlikealeader.com. A 12-week onboarding protocol for first-time people leaders. Next.js (App Router) on Vercel, Supabase for
 sign-in and saved progress, and (from Phase 3) the Claude API for the practice partner.
 
 The content is ported word for word from `reference/1-Leading-People-Protocol.html` into `content/`.
@@ -30,8 +30,8 @@ Set these in `.env.local` for local work and in Vercel → Project → Settings 
 2. **Invite-only sign-in:** Authentication → Sign In / Providers → turn **off** "Allow new users to sign up".
    Email stays enabled. Leaders can only get in after you invite them.
 3. **Links:** Authentication → URL Configuration.
-   - Site URL: the production address, e.g. `https://leader-onboarding-three.vercel.app`
-   - Redirect URLs: add `https://leader-onboarding-three.vercel.app/**` and `http://localhost:3000/**`.
+   - Site URL: the production address, `https://www.growlikealeader.com`
+   - Redirect URLs: add `https://www.growlikealeader.com/**`, `https://growlikealeader.com/**` and `http://localhost:3000/**`.
 4. **Make yourself the admin (once).** With `.env.local` filled in, run:
 
    ```bash
