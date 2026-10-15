@@ -109,13 +109,13 @@ npm run dev
 
 ## Launch checklist
 
-- [ ] Custom SMTP connected and a magic link received at a non-test address
+- [x] Custom SMTP connected and a magic link received at a non-test address
 - [ ] Custom email templates pasted in (see Custom email above) and a sign-in tested from a work email address
 - [ ] Spending limit set in the Anthropic Console
 - [ ] `ANTHROPIC_API_KEY` set in Vercel, and a practice conversation tested on the live site
-- [ ] Row-level security tests passing (`npm run test:rls`)
-- [ ] Admin role set on my account only
-- [ ] Privacy wording approved by me (Overview panel and `/privacy` page)
+- [x] Row-level security tests passing (`npm run test:rls`)
+- [x] Admin role set on my account only
+- [x] Privacy wording approved by me (Overview panel and `/privacy` page)
 - [ ] Every page checked on a phone
 - [ ] Pilot cohort created and leaders invited
 

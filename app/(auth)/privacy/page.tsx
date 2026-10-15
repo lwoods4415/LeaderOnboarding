@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 
 export const metadata: Metadata = { title: "Privacy" };
 
-// Public page (no sign-in needed). Wording to be approved by the program owner before launch.
+// Public page (no sign-in needed). Wording approved by the program owner, 2026-10-15.
 export default function Page() {
   return (
     <>
