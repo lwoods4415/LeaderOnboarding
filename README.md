@@ -111,7 +111,7 @@ npm run dev
 
 - [x] Custom SMTP connected and a magic link received at a non-test address
 - [ ] Custom email templates pasted in (see Custom email above) and a sign-in tested from a work email address
-- [ ] Spending limit set in the Anthropic Console
+- [x] Spending limit set in the Anthropic Console ($20/month)
 - [ ] `ANTHROPIC_API_KEY` set in Vercel, and a practice conversation tested on the live site
 - [x] Row-level security tests passing (`npm run test:rls`)
 - [x] Admin role set on my account only
