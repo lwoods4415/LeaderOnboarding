@@ -210,10 +210,10 @@ textarea{min-height:92px;resize:vertical}
 .lab-head .tag{background:var(--accent)}
 .lab-head h3{font-size:1.25rem}
 .agenda{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
-.agenda li{display:grid;grid-template-columns:70px minmax(0,1fr);gap:12px;align-items:start}
-.agenda li>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.agenda>li{display:grid;grid-template-columns:70px minmax(0,1fr);gap:12px;align-items:start}
+.agenda>li>div{display:flex;flex-direction:column;gap:4px;min-width:0}
 .min{font-size:.78rem;font-weight:600;color:var(--blue);font-variant-numeric:tabular-nums;padding-top:2px;white-space:nowrap}
-.obs{margin:4px 0 0;padding-left:20px;font-size:.92rem}
+.obs{margin:4px 0 0;padding-left:20px;font-size:.92rem;list-style:disc}
 .linkrow{text-align:left;width:100%;font:inherit;color:inherit;grid-template-columns:90px 1fr}
 .linkrow:hover{border-color:var(--blue)}
 .rp-picker{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px}
@@ -291,7 +291,7 @@ textarea{min-height:92px;resize:vertical}
   .tiles{grid-template-columns:1fr}
   .gh{display:none} .gr{grid-template-columns:1fr 1fr} .gr>span{grid-column:1/-1} .gr>div{grid-column:1/-1}
   .stage{grid-template-columns:1fr} .st-n{justify-self:start}
-  .agenda li{grid-template-columns:1fr}
+  .agenda>li{grid-template-columns:1fr}
   .msg{max-width:94%}
 }
 /* ---------- sharing + dashboard ---------- */
@@ -350,3 +350,5 @@ a.btn.primary{color:var(--bg)}
 .msg-ok{color:var(--good);font-weight:600}
 .msg-err{color:var(--accent);font-weight:600}
 @media (max-width:620px){ .acct{align-items:flex-start} .form-row{grid-template-columns:1fr} }
+/* Fix carried over from the reference page: ".agenda li" also matched the observer checklist inside
+   each agenda row, squeezing it into the 70px time column. Rows are now ".agenda>li" (above). */
