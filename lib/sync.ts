@@ -5,6 +5,7 @@
 //   leader_progress (leader + admin): module %, scenario answers, practice scores, growth numbers.
 import { useSyncExternalStore } from "react";
 import { MODULES, ROLEPLAYS } from "@/content";
+import { isCustomId } from "@/content/custom-practice";
 import { modProgress, overall } from "./progress";
 import { blankState, normalize, type LeaderState, type RpState, type Turn } from "./state";
 import { loadShared } from "./sharing";
@@ -44,9 +45,12 @@ export function split(s: LeaderState): { priv: PrivateDoc; prog: ProgressDoc } {
 export function join(priv: Partial<PrivateDoc> | null, prog: Partial<ProgressDoc> | null): LeaderState {
   const b = blankState();
   const rp: LeaderState["rp"] = {};
-  for (const r of ROLEPLAYS) {
-    const p = prog?.rp?.[r.id], t = priv?.turns?.[r.id];
-    if (p || t) rp[r.id] = { mode: p?.mode ?? "realistic", fb: p?.fb ?? null, history: p?.history ?? [], turns: t ?? [] };
+  // Built-in conversations plus the leader's own scenarios (ids starting "c:").
+  const ids = new Set([...ROLEPLAYS.map((r) => r.id), ...Object.keys(prog?.rp ?? {}), ...Object.keys(priv?.turns ?? {})]);
+  for (const id of ids) {
+    if (!ROLEPLAYS.some((r) => r.id === id) && !isCustomId(id)) continue;
+    const p = prog?.rp?.[id], t = priv?.turns?.[id];
+    if (p || t) rp[id] = { mode: p?.mode ?? "realistic", fb: p?.fb ?? null, history: p?.history ?? [], turns: t ?? [] };
   }
   return normalize({
     checks: priv?.checks ?? b.checks, notes: priv?.notes ?? b.notes, braving: priv?.braving ?? b.braving,

@@ -90,6 +90,7 @@ Enforced by row-level security in `supabase/migrations/0001_init.sql`, not just 
 | Module progress, scenario answers, practice scores and feedback, self-assessment, team pulse | `leader_progress` | Yes |
 | Shared reflections and conversations (one at a time, until the leader stops sharing) | `shared_items` | Yes |
 | Reflections, planners, documentation builder, trust self-check, practice checklist, full conversations | `leader_private` | **No** |
+| Practice scenarios a leader writes | `custom_scenarios` | **No** |
 
 `npm run test:rls` signs in as two throwaway leaders and a throwaway admin and checks these rules (it needs
 `SUPABASE_SECRET_KEY` in `.env.local`, and deletes the test accounts when it finishes).
@@ -109,6 +110,13 @@ the browser. Only conversation text is sent to Claude. Limits: 30 leader turns p
 characters per message, and the daily per-leader limits above. Every call is recorded in `usage_log`
 (user, route, model, tokens) for cost per cohort. Feedback uses Anthropic's server-side fallback
 (`fallbacks: "default"`), so a wrongly declined review is retried on another model.
+
+**Leaders' own scenarios** ("Create your own" in the studio) live in `custom_scenarios`, readable only by the
+leader who wrote them. The server loads a scenario by id as that leader and places their text inside fixed
+program instructions (`customRolePrompt` in `prompts.ts`). They're scored on the standard five-skill rubric in
+`content/custom-practice.ts`. Scores and coach feedback go to `leader_progress` (visible to the admin as
+"Custom scenario 1, 2…", without titles or descriptions); conversations stay private unless shared.
+Up to 20 scenarios per leader.
 
 After a build, `npm run check:bundle` confirms no secret key or backstory is in the browser code.
 

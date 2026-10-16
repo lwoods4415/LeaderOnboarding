@@ -2,7 +2,6 @@
 // Same rubric prompt and JSON shape as the reference page's rpFeedback(), checked here:
 // scores kept to 1-3, exactly one score per skill, and one retry if the reply doesn't fit.
 import Anthropic from "@anthropic-ai/sdk";
-import { feedbackPrompt } from "@/content/leading-people/prompts";
 import { anthropic, CONFIG, currentLeader, explain, fail, logUsage, parseRequest, underDailyLimit, type PracticeRequest } from "@/lib/practice";
 
 const SCHEMA = {
@@ -78,22 +77,22 @@ export async function POST(request: Request) {
   const userId = await currentLeader();
   if (!userId) return fail(401, "Your sign-in has expired. Sign in again, then try again.");
 
-  const parsed = parseRequest(await request.json().catch(() => null));
+  const parsed = await parseRequest(await request.json().catch(() => null));
   if (typeof parsed === "string") return fail(400, parsed);
-  const { roleplay, mode, turns }: PracticeRequest = parsed;
+  const { who, skills, turns, feedbackPrompt }: PracticeRequest = parsed;
   if (turns.filter((t) => t.role === "leader").length < 2) return fail(400, "Send at least two messages before asking for feedback.");
 
   if (!(await underDailyLimit(userId, "feedback"))) {
     return fail(429, `You've reached today's limit of ${CONFIG.feedbackPerDay} feedback requests. It resets tomorrow.`);
   }
 
-  const transcript = turns.map((t) => (t.role === "leader" ? "LEADER: " : roleplay.who.toUpperCase() + ": ") + t.text).join("\n");
-  const prompt = feedbackPrompt(roleplay, mode, transcript);
+  const transcript = turns.map((t) => (t.role === "leader" ? "LEADER: " : who.toUpperCase() + ": ") + t.text).join("\n");
+  const prompt = feedbackPrompt(transcript);
   try {
     for (let attempt = 0; attempt < 2; attempt++) {
       const result = await ask(prompt, userId);
       if ("refused" in result) return fail(422, "The coach couldn't review this conversation. Try starting over and rephrasing.");
-      const fb = validate(result.text, roleplay.skills);
+      const fb = validate(result.text, skills);
       if (fb) return Response.json({ feedback: fb });
     }
     return fail(502, "The feedback didn't come back in a readable form. Try again.");

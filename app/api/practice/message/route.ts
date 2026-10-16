@@ -2,16 +2,15 @@
 // The character's instructions are built here from the role-play definition; the browser only
 // sends which conversation, the difficulty and the conversation so far.
 import type Anthropic from "@anthropic-ai/sdk";
-import { rolePrompt } from "@/content/leading-people/prompts";
 import { anthropic, CONFIG, currentLeader, explain, fail, logUsage, parseRequest, toMessages, underDailyLimit } from "@/lib/practice";
 
 export async function POST(request: Request) {
   const userId = await currentLeader();
   if (!userId) return fail(401, "Your sign-in has expired. Sign in again, then resend your message.");
 
-  const parsed = parseRequest(await request.json().catch(() => null));
+  const parsed = await parseRequest(await request.json().catch(() => null));
   if (typeof parsed === "string") return fail(400, parsed);
-  const { roleplay, mode, turns } = parsed;
+  const { system, turns } = parsed;
   const messages = toMessages(turns);
   if (!messages.length || turns[turns.length - 1].role !== "leader") return fail(400, "Type a message first.");
 
@@ -24,7 +23,7 @@ export async function POST(request: Request) {
     {
       model,
       max_tokens: 1024, // replies are one to four sentences
-      system: rolePrompt(roleplay, mode),
+      system,
       messages,
       output_config: { effort: "low" }, // quick, conversational replies
     },

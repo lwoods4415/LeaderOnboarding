@@ -3,6 +3,7 @@
 // (scores, scenario answers, growth), shared items and practice usage. Private data is never
 // read here, and the database wouldn't return it to the admin anyway.
 import { MODULES, PULSE_Q, ROLEPLAYS, SELF_SKILLS } from "@/content";
+import { isCustomId, STANDARD_SKILLS } from "@/content/custom-practice";
 import { avgOf, rpAvg } from "./progress";
 import type { Growth, RpState, ScenarioPicks, Turn } from "./state";
 import { supabaseBrowser } from "./supabase/client";
@@ -102,6 +103,17 @@ export function lowestSkills(leaders: DashLeader[]) {
       if (v.length) rows.push({ skill, conv: r.title, n: v.length, a: round1(v.reduce((a, b) => a + b, 0) / v.length) });
     });
   }
+  // Leaders' own scenarios are all scored on the same standard rubric, so they can be combined.
+  STANDARD_SKILLS.forEach((skill, i) => {
+    const v: number[] = [], who = new Set<string>();
+    for (const l of leaders) {
+      for (const [id, x] of Object.entries(l.rp)) {
+        const sc = isCustomId(id) ? x.fb?.scores?.[i] : undefined;
+        if (sc) { v.push(Number(sc.score)); who.add(l.id); }
+      }
+    }
+    if (v.length) rows.push({ skill, conv: "Leaders' own scenarios", n: who.size, a: round1(v.reduce((a, b) => a + b, 0) / v.length) });
+  });
   return rows.sort((a, b) => a.a - b.a);
 }
 

@@ -3,6 +3,8 @@ import "server-only";
 // daily limits and usage logging. The Anthropic API key is only ever read here.
 import Anthropic from "@anthropic-ai/sdk";
 import { MODES, ROLEPLAYS, type Difficulty } from "@/content";
+import { CUSTOM_PREFIX, isCustomId, STANDARD_SKILLS } from "@/content/custom-practice";
+import { customFeedbackPrompt, customRolePrompt, feedbackPrompt, rolePrompt } from "@/content/leading-people/prompts";
 import { ROLEPLAY_SECRETS } from "@/content/leading-people/roleplay-secrets";
 import { supabaseAdmin } from "./supabase/admin";
 import { supabaseServer } from "./supabase/server";
@@ -20,7 +22,15 @@ let client: Anthropic | undefined;
 export const anthropic = () => (client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }));
 
 export type Turn = { role: "leader" | "them"; text: string };
-export type PracticeRequest = { roleplay: (typeof ROLEPLAYS)[number] & (typeof ROLEPLAY_SECRETS)[string]; mode: Difficulty; turns: Turn[] };
+/** A checked practice request, with the character's instructions already built on the server. */
+export type PracticeRequest = {
+  who: string;
+  skills: string[];
+  mode: Difficulty;
+  turns: Turn[];
+  system: string;
+  feedbackPrompt: (transcript: string) => string;
+};
 
 /** A plain-language JSON error the Studio shows to the leader. */
 export const fail = (status: number, message: string) => Response.json({ error: message }, { status });
@@ -34,13 +44,44 @@ export async function currentLeader() {
   return profile?.active ? data.user.id : null;
 }
 
-/** Checks the body. Only ids, the difficulty and conversation text are accepted, never prompt text. */
-export function parseRequest(body: unknown): PracticeRequest | string {
+const NOT_FOUND = "That practice conversation wasn't found. Refresh the page and try again.";
+
+/**
+ * Checks the body. Only an id, the difficulty and conversation text are accepted, never prompt text.
+ * Built-in conversations come from the content files; a leader's own scenario is loaded from the
+ * database as that leader, so row-level security ensures it's theirs.
+ */
+export async function parseRequest(body: unknown): Promise<PracticeRequest | string> {
   const b = body as { roleplayId?: unknown; difficulty?: unknown; turns?: unknown };
-  const base = ROLEPLAYS.find((r) => r.id === b?.roleplayId);
-  const secret = base && ROLEPLAY_SECRETS[base.id];
-  if (!base || !secret) return "That practice conversation wasn't found. Refresh the page and try again.";
+  if (typeof b?.roleplayId !== "string") return NOT_FOUND;
   if (typeof b.difficulty !== "string" || !(b.difficulty in MODES)) return "Choose a difficulty and try again.";
+  const mode = b.difficulty as Difficulty;
+
+  let character: Omit<PracticeRequest, "mode" | "turns">;
+  if (isCustomId(b.roleplayId)) {
+    const supabase = await supabaseServer();
+    const { data: c } = await supabase
+      .from("custom_scenarios")
+      .select("who, role, situation, goal, reactions, hidden")
+      .eq("id", b.roleplayId.slice(CUSTOM_PREFIX.length))
+      .maybeSingle();
+    if (!c) return NOT_FOUND;
+    character = {
+      who: c.who, skills: STANDARD_SKILLS,
+      system: customRolePrompt(c, mode),
+      feedbackPrompt: (transcript) => customFeedbackPrompt(c, STANDARD_SKILLS, mode, transcript),
+    };
+  } else {
+    const base = ROLEPLAYS.find((r) => r.id === b.roleplayId);
+    const secret = base && ROLEPLAY_SECRETS[base.id];
+    if (!base || !secret) return NOT_FOUND;
+    const rp = { ...base, ...secret };
+    character = {
+      who: rp.who, skills: rp.skills,
+      system: rolePrompt(rp, mode),
+      feedbackPrompt: (transcript) => feedbackPrompt(rp, mode, transcript),
+    };
+  }
   if (!Array.isArray(b.turns)) return "The conversation couldn't be read. Refresh the page and try again.";
   const turns: Turn[] = [];
   for (const t of b.turns) {
@@ -51,7 +92,7 @@ export function parseRequest(body: unknown): PracticeRequest | string {
   if (turns.filter((t) => t.role === "leader").length > CONFIG.maxLeaderTurns) {
     return `A conversation can have up to ${CONFIG.maxLeaderTurns} of your messages. Select "End and get feedback", or "Start over".`;
   }
-  return { roleplay: { ...base, ...secret }, mode: b.difficulty as Difficulty, turns };
+  return { ...character, mode, turns };
 }
 
 /** Conversation text only, as Claude messages. Starts with the leader, like the reference page. */

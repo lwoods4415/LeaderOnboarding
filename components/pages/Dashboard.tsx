@@ -12,6 +12,8 @@ import {
 } from "@/lib/dashboard";
 import { useProfile } from "../Account";
 import { Attempt, BarPair } from "./Growth";
+import { isCustomId } from "@/content/custom-practice";
+import type { RpState, Turn } from "@/lib/state";
 
 const ago = (ts: string | null) => {
   if (!ts) return "–";
@@ -139,6 +141,7 @@ function LeaderDetail({ d }: { d: DashLeader }) {
   ));
   const worked = MODULES.filter((m) => d.picks[m.id] && (d.picks[m.id].first || d.picks[m.id].s0 != null));
   const prac = ROLEPLAYS.filter((r) => d.rp[r.id]);
+  const custom = Object.entries(d.rp).filter(([id, x]) => isCustomId(id) && (x.fb || x.history?.length));
   const refl = Object.entries(d.shared.refl).map(([id, v]) => {
     const m = MODULES.find((x) => x.reflect.some((r) => r.id === id));
     return { id, v, m, q: m?.reflect.find((r) => r.id === id)?.q ?? id };
@@ -167,7 +170,7 @@ function LeaderDetail({ d }: { d: DashLeader }) {
       })}</div> : <p className="note">No scenarios worked yet.</p>}
 
       <h4 className="dh">Practice studio</h4>
-      {prac.length ? <div className="stack">{prac.map((r) => {
+      {prac.length || custom.length ? <div className="stack">{prac.map((r) => {
         const x = d.rp[r.id], f = x.fb, tr = d.shared.rp[r.id], n = x.history?.length ?? 0;
         return (
           <div className="card prac" key={r.id}>
@@ -193,6 +196,12 @@ function LeaderDetail({ d }: { d: DashLeader }) {
           </div>
         );
       })}</div> : <p className="note">No scored practice conversations yet.</p>}
+      {custom.length ? (
+        <>
+          <p className="note" style={{ marginTop: 12 }}>Scenarios the leader wrote for themselves. Their titles and descriptions stay private; you see scores and coach feedback, and the conversation only if they share it.</p>
+          <div className="stack">{custom.map(([id, x], i) => <PracticeCard key={id} title={`Custom scenario ${i + 1}`} who="" x={x} shared={d.shared.rp[id]} />)}</div>
+        </>
+      ) : null}
 
       <h4 className="dh">Growth</h4>
       <div className="gtable"><div className="gh"><span>Self-assessment</span><span>Week 0</span><span>Week 12</span><span></span></div>{growthRows(SELF_SKILLS, g?.self0, g?.self12)}</div>
@@ -205,5 +214,32 @@ function LeaderDetail({ d }: { d: DashLeader }) {
         <div className="card" key={id}><span className="eyebrow">{m ? <span {...raw(m.short)} /> : null} · shared {v.at}</span><h4 {...raw(q)} /><p>{v.text}</p></div>
       ))}</div> : <p className="note">Nothing shared yet. Reflections stay private unless the leader shares them.</p>}
     </section>
+  );
+}
+
+/** Scores, history and coach feedback for one of a leader's own scenarios (no scenario text). */
+function PracticeCard({ title, who, x, shared }: { title: string; who: string; x: Omit<RpState, "turns">; shared?: { turns: Turn[]; at: string } }) {
+  const f = x.fb, n = x.history?.length ?? 0;
+  return (
+    <div className="card prac">
+      <div className="fb-head"><div><span className="eyebrow">{n} scored session{n === 1 ? "" : "s"}</span><h4>{title}</h4></div><div className="score"><b>{f ? rpAvg(f) : "–"}</b><span>latest of 3</span></div></div>
+      {n ? <p className="note">History: {x.history.map((h) => `${h.avg} (${h.mode}, ${h.d})`).join(" → ")}</p> : null}
+      {f ? (
+        <>
+          <p><b>Coach summary:</b> {f.overall ?? ""}</p>
+          <div className="fb-rows">{f.scores.map((s, i) => (
+            <div className="fb-row" key={i}><div className="dots">{[1, 2, 3].map((k) => <i key={k} className={k <= Number(s.score) ? "on" : ""} />)}</div><div><b>{s.skill}</b><p>{s.evidence}</p>{s.tip ? <p className="tip">{s.tip}</p> : null}</div></div>
+          ))}</div>
+          {f.next ? <p><b>Practice next:</b> {f.next}</p> : null}
+        </>
+      ) : null}
+      {shared ? (
+        <details><summary>Shared conversation ({shared.at})</summary>
+          <div className="chat-log static">{shared.turns.map((t, i) => (
+            <div key={i} className={`msg ${t.role === "leader" ? "me" : "them"}`}><span>{t.role === "leader" ? "Leader" : who || "Practice partner"}</span><p>{t.text}</p></div>
+          ))}</div>
+        </details>
+      ) : <p className="note">Full conversation not shared.</p>}
+    </div>
   );
 }

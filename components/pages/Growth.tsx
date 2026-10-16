@@ -7,6 +7,8 @@ import type { ScenarioAttempt, ScenarioPicks } from "@/lib/state";
 import { update, useLeader } from "@/lib/store";
 import { CopyButton, RateChip } from "../ui";
 import { useOpenRoleplay } from "../useOpenRoleplay";
+import { CUSTOM_PREFIX } from "@/content/custom-practice";
+import { useCustomScenarios } from "@/lib/customScenarios";
 
 type Grp = "self0" | "self12" | "pulse0" | "pulse12";
 
@@ -30,9 +32,11 @@ export function Growth() {
   const s = useLeader();
   const g = s.growth;
   const open = useOpenRoleplay();
+  const customs = useCustomScenarios();
   const s0 = avgOf(g.self0, SELF_SKILLS.length), s1 = avgOf(g.self12, SELF_SKILLS.length);
   const p0 = avgOf(g.pulse0, PULSE_Q.length), p1 = avgOf(g.pulse12, PULSE_Q.length);
-  const rpRuns = ROLEPLAYS.reduce((a, r) => a + (s.rp[r.id]?.history ?? []).length, 0);
+  // Scored sessions across the built-in conversations and the leader's own scenarios.
+  const rpRuns = Object.values(s.rp).reduce((a, x) => a + (x.history ?? []).length, 0);
   const setGrow = (grp: Grp, i: number, v: string) => update((d) => { d.growth[grp][i] = v; });
 
   const sel = (grp: Grp, i: number) => (
@@ -113,6 +117,15 @@ export function Growth() {
               <button key={r.id} className="check linkrow" onClick={() => open(r.id)}>
                 <span className="min">{h.length ? h[h.length - 1].avg + "/3" : "–"}</span>
                 <span><b {...raw(r.title)} /><small>{h.length ? h.map((x) => x.avg + " (" + x.mode + ")").join(" → ") : "Not practiced yet"}</small></span>
+              </button>
+            );
+          })}
+          {customs.list.map((c) => {
+            const id = CUSTOM_PREFIX + c.id, h = s.rp[id]?.history ?? [];
+            return (
+              <button key={id} className="check linkrow" onClick={() => open(id)}>
+                <span className="min">{h.length ? h[h.length - 1].avg + "/3" : "–"}</span>
+                <span><b>{c.title}</b><small>Your scenario · {h.length ? h.map((x) => x.avg + " (" + x.mode + ")").join(" → ") : "Not practiced yet"}</small></span>
               </button>
             );
           })}

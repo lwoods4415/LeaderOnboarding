@@ -5,6 +5,9 @@ import { raw } from "@/lib/html";
 import { rpAvg, today } from "@/lib/progress";
 import { shareConversation, unshareConversation } from "@/lib/sharing";
 import { rpState, type Feedback, type Turn } from "@/lib/state";
+import { CUSTOM_PREFIX, customMode, isCustomId, STANDARD_SKILLS, type CustomScenario } from "@/content/custom-practice";
+import { deleteScenario, useCustomScenarios } from "@/lib/customScenarios";
+import { ScenarioForm } from "./ScenarioForm";
 import { update, useLeader } from "@/lib/store";
 
 const NOTE = "Practice only. Never type real patient names or details. Your program leader sees your scores and feedback, not the conversation, unless you share it.";
@@ -19,11 +22,28 @@ async function errorText(res: Response, fallback: string) {
   }
 }
 
+/** One practice conversation: a built-in one (content may hold inline HTML) or the leader's own (plain text). */
+type Conv = { id: string; custom: boolean; title: string; who: string; role: string; brief: string; goal: string; skills: string[]; label: string; source?: CustomScenario };
+
+const fromBuiltin = (r: (typeof ROLEPLAYS)[number]): Conv => ({
+  id: r.id, custom: false, title: r.title, who: r.who, role: r.role, brief: r.brief, goal: r.goal, skills: r.skills,
+  label: MODULES.find((x) => x.id === r.mod)!.weeks,
+});
+const fromCustom = (c: CustomScenario): Conv => ({
+  id: CUSTOM_PREFIX + c.id, custom: true, title: c.title, who: c.who, role: c.role, brief: c.situation, goal: c.goal, skills: STANDARD_SKILLS,
+  label: "Your scenario", source: c,
+});
+
 export function Studio() {
   const s = useLeader();
-  const rp = ROLEPLAYS.find((r) => r.id === s.rpSel) ?? ROLEPLAYS[0];
-  const st = s.rp[rp.id] ?? { mode: "realistic" as Difficulty, turns: [], fb: null, history: [] };
-  const m = MODULES.find((x) => x.id === rp.mod)!;
+  const customs = useCustomScenarios();
+  const [editing, setEditing] = useState<null | "new" | CustomScenario>(null);
+  const selCustom = isCustomId(s.rpSel) ? customs.list.find((c) => CUSTOM_PREFIX + c.id === s.rpSel) : undefined;
+  const waitingForCustom = isCustomId(s.rpSel) && !customs.loaded;
+  const conv = selCustom ? fromCustom(selCustom) : fromBuiltin(ROLEPLAYS.find((r) => r.id === s.rpSel) ?? ROLEPLAYS[0]);
+  // Built-in text is authored content that may contain <em>/<b>; a leader's own text is always shown as plain text.
+  const T = (text: string) => (conv.custom ? { children: text } : raw(text));
+  const st = s.rp[conv.id] ?? { mode: "realistic" as Difficulty, turns: [], fb: null, history: [] };
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState<null | "reply" | "feedback">(null);
   const [streaming, setStreaming] = useState<string | null>(null);
@@ -37,7 +57,7 @@ export function Studio() {
   useEffect(() => {
     const el = logRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [st.turns.length, streaming, rp.id]);
+  }, [st.turns.length, streaming, conv.id]);
   // Stop a reply that's still streaming if the leader leaves the studio.
   useEffect(() => () => ctl.current?.abort(), []);
 
@@ -46,7 +66,7 @@ export function Studio() {
     if (!text || busy) return;
     if (text.length > MAX_CHARS) return setMsg(`Each message can be up to ${MAX_CHARS.toLocaleString()} characters. Shorten it and send again.`);
     if (leaderTurns >= MAX_LEADER_TURNS) return setMsg(`A conversation can have up to ${MAX_LEADER_TURNS} of your messages. Select "End and get feedback", or "Start over".`);
-    const id = rp.id, mode = st.mode;
+    const id = conv.id, mode = st.mode;
     const turns = [...st.turns, { role: "leader" as const, text }];
     const prevFb = st.fb;
     update((d) => { const x = rpState(d, id); x.turns.push({ role: "leader", text }); x.fb = null; });
@@ -77,7 +97,7 @@ export function Studio() {
         reply += r.value;
         setStreaming(reply);
       }
-      if (!reply.trim()) return restore(`${rp.who} couldn't respond to that message. Try rephrasing it.`);
+      if (!reply.trim()) return restore(`${conv.who} couldn't respond to that message. Try rephrasing it.`);
       update((d) => { rpState(d, id).turns.push({ role: "them", text: reply.trim() }); });
     } catch {
       const stopped = c.signal.aborted;
@@ -97,7 +117,7 @@ export function Studio() {
 
   async function getFeedback() {
     if (busy) return;
-    const id = rp.id, mode = st.mode;
+    const id = conv.id, mode = st.mode;
     setBusy("feedback");
     setMsg("Reviewing your conversation. This can take up to a minute…");
     const c = (ctl.current = new AbortController());
@@ -126,6 +146,7 @@ export function Studio() {
   }
 
   const ready = !busy;
+  const select = (id: string) => { if (busy) return; update((d) => { d.rpSel = id; }); setEditing(null); setMsg(NOTE); setDraft(""); };
   return (
     <>
       <div className="mhead"><div className="eyebrow">Practice studio</div><h2>Practice the <em>hard conversations</em></h2><div className="sub">Low stakes, real reactions, honest feedback</div></div>
@@ -133,43 +154,69 @@ export function Studio() {
         {ROLEPLAYS.map((r) => {
           const a = rpAvg(s.rp[r.id]?.fb);
           return (
-            <button key={r.id} role="tab" aria-selected={r.id === rp.id}
-              onClick={() => { if (busy) return; update((d) => { d.rpSel = r.id; }); setMsg(NOTE); setDraft(""); }}>
+            <button key={r.id} role="tab" aria-selected={!editing && r.id === conv.id} onClick={() => select(r.id)}>
               <b {...raw(r.title)} /><small {...raw(MODULES.find((x) => x.id === r.mod)!.short + (a != null ? " · " + a + "/3" : ""))} />
             </button>
           );
         })}
+        {customs.list.map((c) => {
+          const id = CUSTOM_PREFIX + c.id, a = rpAvg(s.rp[id]?.fb);
+          return (
+            <button key={id} role="tab" aria-selected={!editing && id === conv.id} onClick={() => select(id)}>
+              <b>{c.title}</b><small>Your scenario{a != null ? " · " + a + "/3" : ""}</small>
+            </button>
+          );
+        })}
+        <button role="tab" aria-selected={editing === "new"} disabled={!!busy} onClick={() => setEditing("new")}>
+          <b>+ Create your own</b><small>Practice a real situation</small>
+        </button>
       </div>
+      {editing ? (
+        <ScenarioForm
+          initial={editing === "new" ? undefined : editing}
+          onCancel={() => setEditing(null)}
+          onSaved={(c) => { setEditing(null); select(CUSTOM_PREFIX + c.id); }}
+        />
+      ) : waitingForCustom ? <p className="note">Loading your scenario…</p> : (
       <div className="studio">
         <div className="brief">
-          <span className="eyebrow">{m.weeks} · {rp.who}, {rp.role}</span>
-          <h3 {...raw(rp.title)} />
-          <p {...raw(rp.brief)} />
-          <p {...raw(`<b>Your goal:</b> ${rp.goal}`)} />
+          <span className="eyebrow">{conv.label} · {conv.who}, {conv.role}</span>
+          <h3 {...T(conv.title)} />
+          <p {...T(conv.brief)} />
+          {conv.custom ? <p><b>Your goal:</b> {conv.goal}</p> : <p {...raw(`<b>Your goal:</b> ${conv.goal}`)} />}
+          {conv.custom && conv.source ? (
+            <div className="row">
+              <button className="btn ghost" disabled={!ready} onClick={() => setEditing(conv.source!)}>Edit scenario</button>
+              <button className="btn ghost" disabled={!ready} onClick={async () => {
+                if (!confirm(`Delete "${conv.title}"? Its practice history and any shared copy go with it.`)) return;
+                try { await deleteScenario(conv.source!.id); } catch { setMsg("Couldn't delete the scenario. Try again."); }
+              }}>Delete</button>
+            </div>
+          ) : null}
           <div className="modes" role="radiogroup" aria-label="Difficulty">
             {(Object.keys(MODES) as Difficulty[]).map((k) => (
               <button key={k} role="radio" aria-checked={st.mode === k} disabled={!ready}
-                onClick={() => update((d) => { rpState(d, rp.id).mode = k; })}>
+                onClick={() => update((d) => { rpState(d, conv.id).mode = k; })}>
                 {k.charAt(0).toUpperCase() + k.slice(1)}
               </button>
             ))}
           </div>
-          <p className="note">{MODES[st.mode]}</p>
+          <p className="note">{conv.custom ? customMode(st.mode, conv.who) : MODES[st.mode]}</p>
           <p className="eyebrow" style={{ marginTop: 6 }}>Skills you&apos;ll be scored on</p>
-          <ul className="skills">{rp.skills.map((x, k) => <li key={k} {...raw(x)} />)}</ul>
+          <ul className="skills">{conv.skills.map((x, k) => <li key={k} {...T(x)} />)}</ul>
         </div>
         <div className="chat">
           <div className="chat-log" id="chat-log" aria-live="polite" ref={logRef}>
             {st.turns.length || streaming != null ? (
               <>
                 {st.turns.map((t, k) => (
-                  <div key={k} className={`msg ${t.role === "leader" ? "me" : "them"}`}><span>{t.role === "leader" ? "You" : rp.who}</span><p>{t.text}</p></div>
+                  <div key={k} className={`msg ${t.role === "leader" ? "me" : "them"}`}><span>{t.role === "leader" ? "You" : conv.who}</span><p>{t.text}</p></div>
                 ))}
                 {streaming != null ? (
-                  <div className="msg them"><span>{rp.who}</span>{streaming ? <p>{streaming}</p> : <p className="typing">{rp.who} is typing…</p>}</div>
+                  <div className="msg them"><span>{conv.who}</span>{streaming ? <p>{streaming}</p> : <p className="typing">{conv.who} is typing…</p>}</div>
                 ) : null}
               </>
-            ) : <p className="empty">Start the conversation the way you would in real life. {rp.who} will respond in character.</p>}
+            ) : <p className="empty">Start the conversation the way you would in real life. {conv.who} will respond in character.</p>}
           </div>
           <div className="composer">
             <label htmlFor="rp-input" className="sr">Your message</label>
@@ -180,13 +227,14 @@ export function Studio() {
               <button className="btn primary" disabled={!ready} onClick={() => void send()}>Send</button>
               {busy ? <button className="btn" onClick={() => ctl.current?.abort()}>Stop</button> : null}
               <button className="btn" disabled={!ready || leaderTurns < 2} onClick={() => void getFeedback()}>End and get feedback</button>
-              <button className="btn ghost" disabled={!ready} onClick={() => { update((d) => { const x = rpState(d, rp.id); x.turns = []; x.fb = null; }); setMsg(NOTE); }}>Start over</button>
+              <button className="btn ghost" disabled={!ready} onClick={() => { update((d) => { const x = rpState(d, conv.id); x.turns = []; x.fb = null; }); setMsg(NOTE); }}>Start over</button>
             </div>
             <p className="note" id="rp-msg" role="status">{msg}</p>
           </div>
-          {st.fb ? <FeedbackCard fb={st.fb} rpId={rp.id} turns={st.turns} /> : null}
+          {st.fb ? <FeedbackCard fb={st.fb} rpId={conv.id} turns={st.turns} /> : null}
         </div>
       </div>
+      )}
     </>
   );
 }

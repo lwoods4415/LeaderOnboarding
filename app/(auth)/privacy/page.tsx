@@ -23,7 +23,7 @@ export default function Page() {
         <div className="vis-grid">
           <div><b>Shared automatically</b><ul className="plain"><li>Your name, cohort, progress through each module, and when you were last active</li><li>Your scenario answers: what you typed first, the options you chose, and any later tries</li><li>Your Practice studio scores, score history and coach feedback</li><li>Your self-assessment and team pulse numbers</li></ul></div>
           <div><b>Private unless you choose to share</b><ul className="plain"><li>Your reflections. Each has its own share button, and you can stop sharing at any time.</li><li>Your full practice conversations. Share one from the Practice studio after you get feedback, and stop sharing at any time.</li></ul>
-            <b style={{ marginTop: 12 }}>Always private</b><ul className="plain"><li>Your planners, documentation builder, trust self-check and &ldquo;Do it for real&rdquo; checklist</li></ul></div>
+            <b style={{ marginTop: 12 }}>Always private</b><ul className="plain"><li>Your planners, documentation builder, trust self-check, &ldquo;Do it for real&rdquo; checklist, and the practice scenarios you write. Your scores and coach feedback from practicing them are shared like any other practice.</li></ul></div>
         </div>
         <p className="note">These rules are enforced by the database itself, not just by what the screens show. As the database owner, your program leader could technically access private items, but commits not to view them. When you stop sharing an item, the shared copy is deleted.</p>
       </div></section>

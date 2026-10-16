@@ -128,6 +128,33 @@ describe("sharing", () => {
   });
 });
 
+describe("custom practice scenarios", () => {
+  test("only the leader who wrote a scenario can read, change or delete it; the admin can't read it", async () => {
+    const { a, b, admin } = users;
+    const scenario = { user_id: a.id, title: "rls-test", who: "Sam", role: "A nurse", situation: "PRIVATE-SCENARIO", goal: "A goal" };
+    const made = await a.db.from("custom_scenarios").insert(scenario).select("id").single();
+    assert.equal(made.error, null, made.error?.message);
+    const id = made.data.id;
+    assert.equal(rows(await a.db.from("custom_scenarios").select("id").eq("id", id)).length, 1);
+    assert.deepEqual(rows(await b.db.from("custom_scenarios").select("*").eq("id", id)), []);
+    assert.deepEqual(rows(await admin.db.from("custom_scenarios").select("*").eq("id", id)), []);
+    const upd = await b.db.from("custom_scenarios").update({ situation: "hacked" }).eq("id", id).select();
+    assert.deepEqual(upd.data ?? [], []);
+    assert.ok((await b.db.from("custom_scenarios").insert({ ...scenario, user_id: b.id === a.id ? "" : a.id })).error, "can't write one for someone else");
+    const del = await b.db.from("custom_scenarios").delete().eq("id", id).select();
+    assert.deepEqual(del.data ?? [], []);
+    rows(await a.db.from("custom_scenarios").delete().eq("id", id));
+  });
+
+  test("a leader can keep up to 20 scenarios", async () => {
+    const { b } = users;
+    const many = Array.from({ length: 20 }, (_, i) => ({ user_id: b.id, title: `limit ${i}`, who: "Sam", role: "A nurse", situation: "x", goal: "y" }));
+    for (const s of many) rows(await b.db.from("custom_scenarios").insert(s));
+    assert.ok((await b.db.from("custom_scenarios").insert(many[0])).error, "the 21st should be refused");
+    rows(await b.db.from("custom_scenarios").delete().eq("user_id", b.id));
+  });
+});
+
 describe("usage log", () => {
   test("leaders can't read or write it; the admin can read it", async () => {
     const { a, admin } = users;
@@ -152,7 +179,7 @@ describe("removed access", () => {
 describe("signed-out visitors", () => {
   test("can't read anything", async () => {
     const anon = createClient(URL, PUBLISHABLE, opts);
-    for (const t of ["profiles", "cohorts", "leader_private", "leader_progress", "shared_items"]) {
+    for (const t of ["profiles", "cohorts", "leader_private", "leader_progress", "shared_items", "custom_scenarios", "usage_log"]) {
       const r = await anon.from(t).select("*");
       assert.ok(r.error || r.data.length === 0, `${t} should be empty or denied`);
     }
