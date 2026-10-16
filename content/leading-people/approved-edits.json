@@ -76,5 +76,14 @@
         "replace": "A few weeks later you notice Keisha has been one or two patients below goal for completed calls for a few days."
       }
     ]
+  },
+  {
+    "note": "Page heading on every page. Requested by the program owner, 2026-10-16.",
+    "edits": [
+      {
+        "find": "Onboard it like one.",
+        "replace": "We onboard it like one."
+      }
+    ]
   }
 ]

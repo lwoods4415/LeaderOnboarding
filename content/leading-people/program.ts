@@ -10,7 +10,7 @@ export const PROGRAM: Program = {
   "header": {
     "eyebrow": "Leadership onboarding · First-time leader",
     "h1a": "A promotion is a new job.",
-    "h1b": "Onboard it like one.",
+    "h1b": "We onboard it like one.",
     "p": "A self-guided protocol for people leading a team for the first time, built around five things a promotion takes away and what to learn in their place. Work through it with your leader over roughly twelve weeks."
   },
   "hero": {
