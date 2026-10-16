@@ -104,3 +104,21 @@ export async function deleteLeader(userId: string): Promise<Result> {
   const { error } = await admin.auth.admin.deleteUser(userId);
   return error ? fail("Couldn't delete the leader. Try again.") : { ok: true, message: "Leader and all their data permanently deleted." };
 }
+
+/**
+ * Creates a one-time sign-in link for a leader without sending any email, for the admin to share
+ * directly (Teams, text). It opens /auth/confirm, which signs in only when the leader selects Sign in,
+ * so link scanners can't use it up. Works for leaders whose invite is still pending.
+ */
+export async function createSignInLink(userId: string): Promise<Result & { url?: string }> {
+  const { admin } = await requireAdmin();
+  const { data: p } = await admin.from("profiles").select("email, active").eq("id", userId).maybeSingle();
+  if (!p) return fail("That leader wasn't found.");
+  if (!p.active) return fail("Restore their access first.");
+  const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email: p.email });
+  if (error || !data.properties?.hashed_token) return fail("Couldn't create a sign-in link. Try again.");
+  const h = await headers();
+  const site = process.env.SITE_URL || h.get("origin") || `https://${h.get("host")}`;
+  const url = `${site}/auth/confirm?token_hash=${encodeURIComponent(data.properties.hashed_token)}&type=email`;
+  return { ok: true, message: "Sign-in link created.", url };
+}

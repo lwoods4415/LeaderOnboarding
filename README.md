@@ -60,6 +60,14 @@ leader opens the email on a different device.
   and that would otherwise use up the one-time link. These emails also include a sign-in code, which leaders
   can type on the sign-in page instead.
 
+### When invite emails are slow or go to spam
+
+- **Copy sign-in link** (Leaders and cohorts page) creates a one-time link for a leader **without sending email**,
+  for you to share directly (Teams, text). It opens `/auth/confirm`, so link scanners can't use it up.
+- Set link and code lifetime to 24 hours: Authentication → Sign In / Providers → Email → **Email OTP Expiration** `86400`.
+- Keep a DMARC record on the domain (`_dmarc` TXT `v=DMARC1; p=none;`). A new domain builds sending reputation over a few weeks.
+- Ask leaders to mark the email "Not junk", or ask their organization's IT to allowlist `growlikealeader.com`.
+
 ### Custom email (SMTP)
 
 Supabase's built-in email only sends a few messages an hour and is meant for testing. Before inviting the

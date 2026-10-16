@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { createCohort, deleteLeader, inviteLeader, loadAdminData, moveLeader, setAccess, type AdminData, type Result } from "@/app/(app)/admin/actions";
+import { createCohort, createSignInLink, deleteLeader, inviteLeader, loadAdminData, moveLeader, setAccess, type AdminData, type Result } from "@/app/(app)/admin/actions";
 import { useProfile } from "../Account";
 
 const ago = (ts: string | null) => {
@@ -16,6 +16,7 @@ export function Admin() {
   const [busy, start] = useTransition();
   const [form, setForm] = useState({ name: "", email: "", cohortId: "" });
   const [cohortName, setCohortName] = useState("");
+  const [link, setLink] = useState<{ name: string; url: string; copied: boolean } | null>(null);
 
   const refresh = useCallback(() => loadAdminData().then(setData, () => setMsg({ ok: false, message: "Couldn't load leaders. Refresh the page." })), []);
   useEffect(() => { if (profile?.role === "admin") void refresh(); }, [profile, refresh]);
@@ -23,6 +24,22 @@ export function Admin() {
   if (profile?.role !== "admin") {
     return <><div className="mhead"><h2>Leaders and cohorts</h2></div><p>Only the program owner can see this page.</p></>;
   }
+
+  // A one-time sign-in link to share directly (no email), shown with a copy button.
+  const copyLink = (id: string, name: string) =>
+    start(async () => {
+      try {
+        const r = await createSignInLink(id);
+        if (!r.ok || !r.url) { setMsg(r); return; }
+        const url = r.url;
+        let copied = false;
+        try { await navigator.clipboard.writeText(url); copied = true; } catch {}
+        setLink({ name, url, copied });
+        setMsg(null);
+      } catch {
+        setMsg({ ok: false, message: "Something went wrong. Refresh the page and try again." });
+      }
+    });
 
   const run = (action: () => Promise<Result>, after?: () => void) =>
     start(async () => {
@@ -63,6 +80,18 @@ export function Admin() {
       </section>
 
       <section className="blk"><h3>Leaders</h3>
+        <p className="lede">Invite emails can be slow or land in spam. To get someone in quickly, use <b>Copy sign-in link</b> and send it to them yourself (Teams, text or your own email). No email is sent. Each link works once, for that leader only.</p>
+        {link ? (
+          <div className="checkin" style={{ marginBottom: 16 }}>
+            <h3>Sign-in link for {link.name}</h3>
+            <p style={{ marginTop: 6 }}>{link.copied ? "Copied. Paste it into a private message to them." : "Copy this and paste it into a private message to them."} It works once and expires after the time set in Supabase (24 hours).</p>
+            <div className="row" style={{ marginTop: 10 }}>
+              <input type="text" readOnly value={link.url} aria-label={`Sign-in link for ${link.name}`} onFocus={(e) => e.target.select()} style={{ flex: "1 1 260px" }} />
+              <button className="btn" onClick={() => navigator.clipboard.writeText(link.url).then(() => setLink({ ...link, copied: true }), () => {})}>Copy</button>
+              <button className="btn ghost" onClick={() => setLink(null)}>Done</button>
+            </div>
+          </div>
+        ) : null}
         {!data ? <p className="note">Loading…</p> : !data.leaders.length ? <p className="note">No leaders yet. Invite one above.</p> : (
           <div className="hm-wrap"><table className="hm">
             <thead><tr><th>Leader</th><th>Cohort</th><th>Status</th><th>Last active</th><th>Access</th></tr></thead>
@@ -81,7 +110,10 @@ export function Admin() {
                   <td>
                     {l.id === profile.id ? <span className="note">You</span>
                       : l.active
-                        ? <button className="btn ghost" disabled={busy} onClick={() => { if (confirm(`Remove ${l.name || l.email}'s access? Their progress is kept and you can restore it later.`)) run(() => setAccess(l.id, false)); }}>Remove access</button>
+                        ? <>
+                            <button className="btn ghost" disabled={busy} onClick={() => copyLink(l.id, l.name || l.email)}>Copy sign-in link</button>{" "}
+                            <button className="btn ghost" disabled={busy} onClick={() => { if (confirm(`Remove ${l.name || l.email}'s access? Their progress is kept and you can restore it later.`)) run(() => setAccess(l.id, false)); }}>Remove access</button>
+                          </>
                         : <>
                             <button className="btn ghost" disabled={busy} onClick={() => run(() => setAccess(l.id, true))}>Restore access</button>{" "}
                             <button className="btn ghost" disabled={busy} onClick={() => { if (confirm(`Permanently delete ${l.name || l.email} and everything they saved? This can't be undone.`)) run(() => deleteLeader(l.id)); }}>Delete permanently</button>
