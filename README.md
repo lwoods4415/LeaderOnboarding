@@ -86,6 +86,12 @@ Enforced by row-level security in `supabase/migrations/0001_init.sql`, not just 
 `npm run test:rls` signs in as two throwaway leaders and a throwaway admin and checks these rules (it needs
 `SUPABASE_SECRET_KEY` in `.env.local`, and deletes the test accounts when it finishes).
 
+## Changing program wording
+
+The content files in `content/leading-people/` are generated from the reference page. To change wording, add a
+`find` / `replace` pair to `content/leading-people/approved-edits.json`, then run `node scripts/extract-content.mjs`
+and `npm run verify:content`. The check confirms every other word still matches the reference.
+
 ## Practice partner
 
 `app/api/practice/message` streams the character's reply; `app/api/practice/feedback` returns scored feedback.

@@ -1,0 +1,44 @@
+[
+  {
+    "note": "Address the reader (the new leader) directly. Requested by the program owner, 2026-10-16.",
+    "edits": [
+      {
+        "find": "On Friday they were a peer. On Monday they are responsible for the team, and nobody has explained to the team how that works yet.",
+        "replace": "On Friday you were a peer. On Monday you're responsible for the team, and nobody has explained to the team how that works yet."
+      },
+      { "find": "They lose <em>“my way”</em>", "replace": "You lose <em>“my way”</em>" },
+      {
+        "find": "Their way of working got them promoted.",
+        "replace": "Your way of working got you promoted."
+      },
+      { "find": "They lose <em>the scoreboard</em>", "replace": "You lose <em>the scoreboard</em>" },
+      {
+        "find": "Their numbers used to tell them every day that they were good at the job. A leader's results show up weeks later, in other people's work. Without a new way to measure progress, most new leaders drift back to the work that still gives them a daily score.",
+        "replace": "Your numbers used to tell you every day that you were good at the job. Now your results show up weeks later, in other people's work. Without a new way to measure progress, it's easy to drift back to the work that still gives you a daily score."
+      },
+      { "find": "They lose <em>the quick fix</em>", "replace": "You lose <em>the quick fix</em>" },
+      {
+        "find": "It worked, and it's part of why they got promoted. Now every rescue teaches the team to wait for one, and the leader becomes the bottleneck.",
+        "replace": "It worked, and it's part of why you got promoted. Now every rescue teaches the team to wait for one, and you become the bottleneck."
+      },
+      { "find": "They lose <em>the right to guess</em>", "replace": "You lose <em>the right to guess</em>" },
+      {
+        "find": "A peer can think “she just doesn't care” about a coworker who isn't performing, and it costs nothing. When a leader thinks it, it becomes a decision about someone's job.",
+        "replace": "As a peer, you could think “she just doesn't care” about a coworker who wasn't performing, and it cost nothing. Now that you're the leader, the same thought becomes a decision about someone's job."
+      },
+      { "find": "Lose their peers", "replace": "Lose your peers" },
+      { "find": "What a promotion takes away · their peers", "replace": "What a promotion takes away · your peers" },
+      { "find": "They lose <em>their peers</em>", "replace": "You lose <em>your peers</em>" },
+      {
+        "find": "They used to be part of the venting. Now the room goes quiet when they join, and a former peer's missed standard is theirs to address. If they skip that conversation,",
+        "replace": "You used to be part of the venting. Now the room goes quiet when you join, and a former peer's missed standard is yours to address. If you skip that conversation,"
+      },
+      { "find": "What they can earn in return", "replace": "What you can earn in return" },
+      { "find": "A team that tells them <em>the truth</em>", "replace": "A team that tells you <em>the truth</em>" },
+      {
+        "find": "People who feel safe with their leader bring problems early. That's how a leader finds out what is really going on.",
+        "replace": "People who feel safe with you bring problems early. That's how you find out what is really going on."
+      }
+    ]
+  }
+]

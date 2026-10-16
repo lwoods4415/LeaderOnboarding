@@ -1,5 +1,5 @@
 // Generated from reference/1-Leading-People-Protocol.html by scripts/extract-content.mjs.
-// Text is verbatim from the reference page. Don't edit wording here without the program owner's say-so.
+// Text is verbatim from the reference page, apart from approved-edits.json. To change wording, edit that file and re-run.
 import type { Module, Measure } from "../types";
 
 export const MODULES: Module[] = [
@@ -14,7 +14,7 @@ export const MODULES: Module[] = [
     "eyebrow": "Before day one",
     "title": "Start the new job <em>on purpose</em>",
     "sub": "The first conversations set the terms",
-    "changes": "On Friday they were a peer. On Monday they are responsible for the team, and nobody has explained to the team how that works yet. Most new leaders let this moment happen to them. The first week sets expectations that are hard to undo later.",
+    "changes": "On Friday you were a peer. On Monday you're responsible for the team, and nobody has explained to the team how that works yet. Most new leaders let this moment happen to them. The first week sets expectations that are hard to undo later.",
     "from": "I got the job.",
     "to": "I have a new job, and I'm starting it deliberately.",
     "learn": [
@@ -152,9 +152,9 @@ export const MODULES: Module[] = [
     ],
     "short": "Lose “my way”",
     "eyebrow": "What a promotion takes away · “my way”",
-    "title": "They lose <em>“my way”</em>",
+    "title": "You lose <em>“my way”</em>",
     "sub": "Connect first, then lead",
-    "changes": "Their way of working got them promoted. It was built for one person, and nobody on the team is that person. Feedback from someone who doesn't know you sounds like criticism. Feedback from someone who knows you sounds like help.",
+    "changes": "Your way of working got you promoted. It was built for one person, and nobody on the team is that person. Feedback from someone who doesn't know you sounds like criticism. Feedback from someone who knows you sounds like help.",
     "from": "Do it the way I did it.",
     "to": "Know each person well enough to lead them.",
     "learn": [
@@ -291,9 +291,9 @@ export const MODULES: Module[] = [
     ],
     "short": "Lose the scoreboard",
     "eyebrow": "What a promotion takes away · the scoreboard",
-    "title": "They lose <em>the scoreboard</em>",
+    "title": "You lose <em>the scoreboard</em>",
     "sub": "Build a new one",
-    "changes": "Their numbers used to tell them every day that they were good at the job. A leader's results show up weeks later, in other people's work. Without a new way to measure progress, most new leaders drift back to the work that still gives them a daily score.",
+    "changes": "Your numbers used to tell you every day that you were good at the job. Now your results show up weeks later, in other people's work. Without a new way to measure progress, it's easy to drift back to the work that still gives you a daily score.",
     "from": "My numbers prove I'm good at my job.",
     "to": "My team's growth is the proof.",
     "learn": [
@@ -420,9 +420,9 @@ export const MODULES: Module[] = [
     ],
     "short": "Lose the quick fix",
     "eyebrow": "What a promotion takes away · the quick fix",
-    "title": "They lose <em>the quick fix</em>",
+    "title": "You lose <em>the quick fix</em>",
     "sub": "Coach instead of rescue",
-    "changes": "For years, the answer to every problem was “I'll handle it.” It worked, and it's part of why they got promoted. Now every rescue teaches the team to wait for one, and the leader becomes the bottleneck.",
+    "changes": "For years, the answer to every problem was “I'll handle it.” It worked, and it's part of why you got promoted. Now every rescue teaches the team to wait for one, and you become the bottleneck.",
     "from": "I'll handle it.",
     "to": "What do you think we should do?",
     "learn": [
@@ -551,9 +551,9 @@ export const MODULES: Module[] = [
     ],
     "short": "Lose the right to guess",
     "eyebrow": "What a promotion takes away · the right to guess",
-    "title": "They lose <em>the right to guess</em>",
+    "title": "You lose <em>the right to guess</em>",
     "sub": "Facts before stories",
-    "changes": "A peer can think “she just doesn't care” about a coworker who isn't performing, and it costs nothing. When a leader thinks it, it becomes a decision about someone's job. The story starts shaping every conversation that follows.",
+    "changes": "As a peer, you could think “she just doesn't care” about a coworker who wasn't performing, and it cost nothing. Now that you're the leader, the same thought becomes a decision about someone's job. The story starts shaping every conversation that follows.",
     "from": "She doesn't care.",
     "to": "I see a missed number. I don't know why yet.",
     "learn": [
@@ -688,11 +688,11 @@ export const MODULES: Module[] = [
       9,
       10
     ],
-    "short": "Lose their peers",
-    "eyebrow": "What a promotion takes away · their peers",
-    "title": "They lose <em>their peers</em>",
+    "short": "Lose your peers",
+    "eyebrow": "What a promotion takes away · your peers",
+    "title": "You lose <em>your peers</em>",
     "sub": "Hold the standard with people you like",
-    "changes": "They used to be part of the venting. Now the room goes quiet when they join, and a former peer's missed standard is theirs to address. If they skip that conversation, the rest of the team notices before the former peer does.",
+    "changes": "You used to be part of the venting. Now the room goes quiet when you join, and a former peer's missed standard is yours to address. If you skip that conversation, the rest of the team notices before the former peer does.",
     "from": "One of us.",
     "to": "Fair to all of us.",
     "learn": [
@@ -831,10 +831,10 @@ export const MODULES: Module[] = [
       12
     ],
     "short": "What you earn",
-    "eyebrow": "What they can earn in return",
-    "title": "A team that tells them <em>the truth</em>",
+    "eyebrow": "What you can earn in return",
+    "title": "A team that tells you <em>the truth</em>",
     "sub": "Authority comes with the title. Trust comes from what you do.",
-    "changes": "The title gives authority on day one. Trust comes from small things: connecting on a personal level, doing what you said you'd do, saying “I don't know,” and owning a miss out loud. People who feel safe with their leader bring problems early. That's how a leader finds out what is really going on.",
+    "changes": "The title gives authority on day one. Trust comes from small things: connecting on a personal level, doing what you said you'd do, saying “I don't know,” and owning a miss out loud. People who feel safe with you bring problems early. That's how you find out what is really going on.",
     "from": "My title gives me authority.",
     "to": "My actions give me trust.",
     "learn": [

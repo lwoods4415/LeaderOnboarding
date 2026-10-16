@@ -1,5 +1,5 @@
 // Generated from reference/1-Leading-People-Protocol.html by scripts/extract-content.mjs.
-// Text is verbatim from the reference page. Don't edit wording here without the program owner's say-so.
+// Text is verbatim from the reference page, apart from approved-edits.json. To change wording, edit that file and re-run.
 
 export const SELF_SKILLS: string[] = [
   "Building trust with each person on my team",
