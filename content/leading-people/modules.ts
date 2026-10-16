@@ -231,7 +231,7 @@ export const MODULES: Module[] = [
           ]
         },
         {
-          "setup": "A few weeks later you notice two of Keisha's late-afternoon patients missed their calls this month because she ran out of time.",
+          "setup": "A few weeks later you notice Keisha has been one or two patients below goal for completed calls for a few days.",
           "options": [
             {
               "t": "Tell her to switch to the faster template starting Monday.",
