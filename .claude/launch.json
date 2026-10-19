@@ -1,7 +1,31 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "app", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 3000 },
-    { "name": "reference", "runtimeExecutable": "node", "runtimeArgs": ["scripts/serve-reference.mjs"], "port": 4321 }
+    {
+      "name": "app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "reference",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/serve-reference.mjs"
+      ],
+      "port": 4321
+    },
+    {
+      "name": "app-staging",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:staging"
+      ],
+      "port": 3001
+    }
   ]
 }
