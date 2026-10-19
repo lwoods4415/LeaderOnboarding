@@ -8,9 +8,9 @@ export async function POST(request: Request) {
   const userId = await currentLeader();
   if (!userId) return fail(401, "Your sign-in has expired. Sign in again, then resend your message.");
 
-  const parsed = await parseRequest(await request.json().catch(() => null));
+  const parsed = await parseRequest(await request.json().catch(() => null), userId);
   if (typeof parsed === "string") return fail(400, parsed);
-  const { system, turns } = parsed;
+  const { system, turns, orgId, enrollmentId } = parsed;
   const messages = toMessages(turns);
   if (!messages.length || turns[turns.length - 1].role !== "leader") return fail(400, "Type a message first.");
 
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         if (!request.signal.aborted) console.error("practice message interrupted", err);
         controller.error(err);
       } finally {
-        await logUsage(userId, "message", model, input, output);
+        await logUsage({ userId, orgId, enrollmentId }, "message", model, input, output);
       }
     },
     cancel() {

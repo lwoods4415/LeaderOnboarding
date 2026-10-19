@@ -57,7 +57,7 @@ function validate(text: string, skills: string[]): Feedback | null {
   };
 }
 
-async function ask(prompt: string, userId: string) {
+async function ask(prompt: string, who: { userId: string; orgId: string; enrollmentId: string }) {
   const model = CONFIG.feedbackModel;
   const fallback = FALLBACK_MODELS.has(model);
   const response = await anthropic().beta.messages.create({
@@ -67,7 +67,7 @@ async function ask(prompt: string, userId: string) {
     output_config: { format: { type: "json_schema", schema: SCHEMA } },
     ...(fallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
   });
-  await logUsage(userId, "feedback", response.model, response.usage.input_tokens, response.usage.output_tokens);
+  await logUsage(who, "feedback", response.model, response.usage.input_tokens, response.usage.output_tokens);
   if (response.stop_reason === "refusal") return { refused: true as const };
   const text = response.content.map((b) => (b.type === "text" ? b.text : "")).join("");
   return { text };
@@ -77,9 +77,9 @@ export async function POST(request: Request) {
   const userId = await currentLeader();
   if (!userId) return fail(401, "Your sign-in has expired. Sign in again, then try again.");
 
-  const parsed = await parseRequest(await request.json().catch(() => null));
+  const parsed = await parseRequest(await request.json().catch(() => null), userId);
   if (typeof parsed === "string") return fail(400, parsed);
-  const { who, skills, turns, feedbackPrompt }: PracticeRequest = parsed;
+  const { who, skills, turns, feedbackPrompt, orgId, enrollmentId }: PracticeRequest = parsed;
   if (turns.filter((t) => t.role === "leader").length < 2) return fail(400, "Send at least two messages before asking for feedback.");
 
   if (!(await underDailyLimit(userId, "feedback"))) {
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
   const prompt = feedbackPrompt(transcript);
   try {
     for (let attempt = 0; attempt < 2; attempt++) {
-      const result = await ask(prompt, userId);
+      const result = await ask(prompt, { userId, orgId, enrollmentId });
       if ("refused" in result) return fail(422, "The coach couldn't review this conversation. Try starting over and rephrasing.");
       const fb = validate(result.text, skills);
       if (fb) return Response.json({ feedback: fb });

@@ -2,10 +2,10 @@ import "server-only";
 // Shared server logic for the practice partner routes: who's calling, what they sent,
 // daily limits and usage logging. The Anthropic API key is only ever read here.
 import Anthropic from "@anthropic-ai/sdk";
-import { MODES, ROLEPLAYS, type Difficulty } from "@/content";
+import type { Difficulty, RoleplaySecret } from "@/content";
 import { CUSTOM_PREFIX, isCustomId, STANDARD_SKILLS } from "@/content/custom-practice";
 import { customFeedbackPrompt, customRolePrompt, feedbackPrompt, rolePrompt } from "@/content/leading-people/prompts";
-import { ROLEPLAY_SECRETS } from "@/content/leading-people/roleplay-secrets";
+import type { ProgramContent } from "@/content/program";
 import { supabaseAdmin } from "./supabase/admin";
 import { supabaseServer } from "./supabase/server";
 
@@ -24,6 +24,8 @@ export const anthropic = () => (client ??= new Anthropic({ apiKey: process.env.A
 export type Turn = { role: "leader" | "them"; text: string };
 /** A checked practice request, with the character's instructions already built on the server. */
 export type PracticeRequest = {
+  orgId: string;
+  enrollmentId: string;
   who: string;
   skills: string[];
   mode: Difficulty;
@@ -47,38 +49,50 @@ export async function currentLeader() {
 const NOT_FOUND = "That practice conversation wasn't found. Refresh the page and try again.";
 
 /**
- * Checks the body. Only an id, the difficulty and conversation text are accepted, never prompt text.
- * Built-in conversations come from the content files; a leader's own scenario is loaded from the
- * database as that leader, so row-level security ensures it's theirs.
+ * Checks the body. Only ids, the difficulty and conversation text are accepted, never prompt text.
+ * The enrollment must be the caller's own active one (checked as the caller, under row-level security).
+ * Built-in conversations come from their organization's copy of the program, with the backstories read
+ * by the server; a leader's own scenario is loaded as that leader, so it can only be theirs.
  */
-export async function parseRequest(body: unknown): Promise<PracticeRequest | string> {
-  const b = body as { roleplayId?: unknown; difficulty?: unknown; turns?: unknown };
-  if (typeof b?.roleplayId !== "string") return NOT_FOUND;
-  if (typeof b.difficulty !== "string" || !(b.difficulty in MODES)) return "Choose a difficulty and try again.";
+export async function parseRequest(body: unknown, userId: string): Promise<PracticeRequest | string> {
+  const b = body as { enrollmentId?: unknown; roleplayId?: unknown; difficulty?: unknown; turns?: unknown };
+  if (typeof b?.roleplayId !== "string" || typeof b.enrollmentId !== "string") return NOT_FOUND;
+  const supabase = await supabaseServer();
+
+  const { data: e } = await supabase.from("enrollments").select("id, org_id, org_program_id").eq("id", b.enrollmentId).eq("user_id", userId).eq("status", "active").maybeSingle();
+  const { data: active } = await supabase.rpc("owns_active_enrollment", { eid: b.enrollmentId });
+  if (!e || !active) return "Your access to this program isn't active. Refresh the page, or contact your program leader.";
+  const { data: op } = await supabase.from("org_programs").select("content").eq("id", e.org_program_id).maybeSingle();
+  if (!op) return NOT_FOUND;
+  const program = op.content as ProgramContent;
+
+  if (typeof b.difficulty !== "string" || !(b.difficulty in program.modes)) return "Choose a difficulty and try again.";
   const mode = b.difficulty as Difficulty;
 
-  let character: Omit<PracticeRequest, "mode" | "turns">;
+  let character: Omit<PracticeRequest, "mode" | "turns" | "orgId" | "enrollmentId">;
   if (isCustomId(b.roleplayId)) {
-    const supabase = await supabaseServer();
     const { data: c } = await supabase
       .from("custom_scenarios")
       .select("who, role, situation, goal, reactions, hidden")
       .eq("id", b.roleplayId.slice(CUSTOM_PREFIX.length))
+      .eq("enrollment_id", e.id)
       .maybeSingle();
     if (!c) return NOT_FOUND;
     character = {
       who: c.who, skills: STANDARD_SKILLS,
-      system: customRolePrompt(c, mode),
+      system: customRolePrompt(c, mode, program.modes),
       feedbackPrompt: (transcript) => customFeedbackPrompt(c, STANDARD_SKILLS, mode, transcript),
     };
   } else {
-    const base = ROLEPLAYS.find((r) => r.id === b.roleplayId);
-    const secret = base && ROLEPLAY_SECRETS[base.id];
+    const base = program.roleplays.find((r) => r.id === b.roleplayId);
+    // Backstories live in a table only the server can read.
+    const { data: s } = await supabaseAdmin().from("org_program_secrets").select("secrets").eq("org_program_id", e.org_program_id).maybeSingle();
+    const secret = base && (s?.secrets as { roleplays?: Record<string, RoleplaySecret> } | undefined)?.roleplays?.[base.id];
     if (!base || !secret) return NOT_FOUND;
     const rp = { ...base, ...secret };
     character = {
       who: rp.who, skills: rp.skills,
-      system: rolePrompt(rp, mode),
+      system: rolePrompt(rp, mode, program.modes),
       feedbackPrompt: (transcript) => feedbackPrompt(rp, mode, transcript),
     };
   }
@@ -92,7 +106,7 @@ export async function parseRequest(body: unknown): Promise<PracticeRequest | str
   if (turns.filter((t) => t.role === "leader").length > CONFIG.maxLeaderTurns) {
     return `A conversation can have up to ${CONFIG.maxLeaderTurns} of your messages. Select "End and get feedback", or "Start over".`;
   }
-  return { ...character, mode, turns };
+  return { ...character, orgId: e.org_id, enrollmentId: e.id, mode, turns };
 }
 
 /** Conversation text only, as Claude messages. Starts with the leader, like the reference page. */
@@ -115,8 +129,13 @@ export async function underDailyLimit(userId: string, route: "message" | "feedba
   return (count ?? 0) < (route === "message" ? CONFIG.messagesPerDay : CONFIG.feedbackPerDay);
 }
 
-export async function logUsage(userId: string, route: "message" | "feedback", model: string, input: number, output: number) {
-  const { error } = await supabaseAdmin().from("usage_log").insert({ user_id: userId, route, model, input_tokens: input, output_tokens: output });
+export async function logUsage(
+  who: { userId: string; orgId: string; enrollmentId: string },
+  route: "message" | "feedback", model: string, input: number, output: number,
+) {
+  const { error } = await supabaseAdmin().from("usage_log").insert({
+    user_id: who.userId, org_id: who.orgId, enrollment_id: who.enrollmentId, route, model, input_tokens: input, output_tokens: output,
+  });
   if (error) console.error("usage_log insert failed", error.message);
 }
 

@@ -1,10 +1,12 @@
 "use client";
-import { BRAVING, type BravingTool } from "@/content";
+import type { BravingTool } from "@/content";
+import { useProgram } from "@/lib/program";
 import { raw } from "@/lib/html";
 import { update, useLeader } from "@/lib/store";
 
 export function Braving({ t }: { t: BravingTool }) {
   const b = useLeader().braving;
+  const BRAVING = useProgram().braving;
   const val = (n: string) => b[n] || 3;
   const focus = BRAVING.map((x) => ({ n: x[0], v: Number(val(x[0])) })).reduce((a, c) => (c.v < a.v ? c : a)).n;
   return (

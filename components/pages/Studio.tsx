@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { MODES, MODULES, ROLEPLAYS, type Difficulty } from "@/content";
+import type { Difficulty, Module, Roleplay } from "@/content";
+import { useProgram } from "@/lib/program";
+import { currentEnrollmentId } from "@/lib/sync";
 import { raw } from "@/lib/html";
 import { rpAvg, today } from "@/lib/progress";
 import { shareConversation, unshareConversation } from "@/lib/sharing";
@@ -25,9 +27,9 @@ async function errorText(res: Response, fallback: string) {
 /** One practice conversation: a built-in one (content may hold inline HTML) or the leader's own (plain text). */
 type Conv = { id: string; custom: boolean; title: string; who: string; role: string; brief: string; goal: string; skills: string[]; label: string; source?: CustomScenario };
 
-const fromBuiltin = (r: (typeof ROLEPLAYS)[number]): Conv => ({
+const fromBuiltin = (r: Roleplay, modules: Module[]): Conv => ({
   id: r.id, custom: false, title: r.title, who: r.who, role: r.role, brief: r.brief, goal: r.goal, skills: r.skills,
-  label: MODULES.find((x) => x.id === r.mod)!.weeks,
+  label: modules.find((x) => x.id === r.mod)?.weeks ?? "",
 });
 const fromCustom = (c: CustomScenario): Conv => ({
   id: CUSTOM_PREFIX + c.id, custom: true, title: c.title, who: c.who, role: c.role, brief: c.situation, goal: c.goal, skills: STANDARD_SKILLS,
@@ -36,11 +38,12 @@ const fromCustom = (c: CustomScenario): Conv => ({
 
 export function Studio() {
   const s = useLeader();
+  const { modules: MODULES, roleplays: ROLEPLAYS, modes: MODES } = useProgram();
   const customs = useCustomScenarios();
   const [editing, setEditing] = useState<null | "new" | CustomScenario>(null);
   const selCustom = isCustomId(s.rpSel) ? customs.list.find((c) => CUSTOM_PREFIX + c.id === s.rpSel) : undefined;
   const waitingForCustom = isCustomId(s.rpSel) && !customs.loaded;
-  const conv = selCustom ? fromCustom(selCustom) : fromBuiltin(ROLEPLAYS.find((r) => r.id === s.rpSel) ?? ROLEPLAYS[0]);
+  const conv = selCustom ? fromCustom(selCustom) : fromBuiltin(ROLEPLAYS.find((r) => r.id === s.rpSel) ?? ROLEPLAYS[0], MODULES);
   // Built-in text is authored content that may contain <em>/<b>; a leader's own text is always shown as plain text.
   const T = (text: string) => (conv.custom ? { children: text } : raw(text));
   const st = s.rp[conv.id] ?? { mode: "realistic" as Difficulty, turns: [], fb: null, history: [] };
@@ -89,7 +92,7 @@ export function Studio() {
         method: "POST",
         headers: { "content-type": "application/json" },
         signal: c.signal,
-        body: JSON.stringify({ roleplayId: id, difficulty: mode, turns }),
+        body: JSON.stringify({ enrollmentId: currentEnrollmentId(), roleplayId: id, difficulty: mode, turns }),
       });
       if (!res.ok || !res.body) return restore(await errorText(res, "Something interrupted the reply. Try sending again."));
       const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -126,7 +129,7 @@ export function Studio() {
         method: "POST",
         headers: { "content-type": "application/json" },
         signal: c.signal,
-        body: JSON.stringify({ roleplayId: id, difficulty: mode, turns: st.turns }),
+        body: JSON.stringify({ enrollmentId: currentEnrollmentId(), roleplayId: id, difficulty: mode, turns: st.turns }),
       });
       if (!res.ok) return setMsg(await errorText(res, "Something went wrong getting your feedback. Try again."));
       const { feedback } = (await res.json()) as { feedback: Feedback };
@@ -155,7 +158,7 @@ export function Studio() {
           const a = rpAvg(s.rp[r.id]?.fb);
           return (
             <button key={r.id} role="tab" aria-selected={!editing && r.id === conv.id} onClick={() => select(r.id)}>
-              <b {...raw(r.title)} /><small {...raw(MODULES.find((x) => x.id === r.mod)!.short + (a != null ? " · " + a + "/3" : ""))} />
+              <b {...raw(r.title)} /><small {...raw((MODULES.find((x) => x.id === r.mod)?.short ?? "") + (a != null ? " · " + a + "/3" : ""))} />
             </button>
           );
         })}
@@ -201,7 +204,7 @@ export function Studio() {
               </button>
             ))}
           </div>
-          <p className="note">{conv.custom ? customMode(st.mode, conv.who) : MODES[st.mode]}</p>
+          <p className="note">{conv.custom ? customMode(MODES, st.mode, conv.who) : MODES[st.mode]}</p>
           <p className="eyebrow" style={{ marginTop: 6 }}>Skills you&apos;ll be scored on</p>
           <ul className="skills">{conv.skills.map((x, k) => <li key={k} {...T(x)} />)}</ul>
         </div>

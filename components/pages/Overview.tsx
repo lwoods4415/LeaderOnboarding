@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { MODULES, PROGRAM } from "@/content";
 import { raw } from "@/lib/html";
+import { useProgram } from "@/lib/program";
 import { modProgress, overall } from "@/lib/progress";
 import { update, useLeader } from "@/lib/store";
 import { useProfile } from "../Account";
@@ -12,7 +12,9 @@ type MeKey = "start" | "leader";
 export function Overview() {
   const s = useLeader();
   const profile = useProfile();
-  const pct = overall(s);
+  const program = useProgram();
+  const { modules: MODULES, program: PROGRAM } = program;
+  const pct = overall(s, program);
   const me = (key: MeKey) => ({
     value: s.me[key] ?? "",
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => { const v = e.target.value; update((d) => { d.me[key] = v; }); },
@@ -54,7 +56,7 @@ export function Overview() {
               const cls = i === 0 ? "zero" : i === MODULES.length - 1 ? "cap" : "";
               return (
                 <Link key={m.id} href={`/module/${m.id}`} scroll={false} className={`tl-seg ${cls}`} style={{ gridColumn: `${m.wk[0] + 1} / span ${span}` }}>
-                  <span {...raw(m.short)} /><small>{modProgress(s, m).pct}% done</small>
+                  <span {...raw(m.short)} /><small>{modProgress(s, m, program).pct}% done</small>
                 </Link>
               );
             })}

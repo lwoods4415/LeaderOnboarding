@@ -4,7 +4,7 @@
 //   leader_private  (only the leader): checks, reflections, planners, trust self-check, conversations…
 //   leader_progress (leader + admin): module %, scenario answers, practice scores, growth numbers.
 import { useSyncExternalStore } from "react";
-import { MODULES, ROLEPLAYS } from "@/content";
+import type { ProgramContent } from "@/content/program";
 import { isCustomId } from "@/content/custom-practice";
 import { modProgress, overall } from "./progress";
 import { blankState, normalize, type LeaderState, type RpState, type Turn } from "./state";
@@ -23,7 +23,7 @@ type ProgressDoc = Pick<LeaderState, "picks" | "growth" | "updatedAt"> & {
   summary: { overall: number; modules: { id: string; pct: number }[] };
 };
 
-export function split(s: LeaderState): { priv: PrivateDoc; prog: ProgressDoc } {
+export function split(s: LeaderState, program: ProgramContent): { priv: PrivateDoc; prog: ProgressDoc } {
   const turns: PrivateDoc["turns"] = {};
   const rp: ProgressDoc["rp"] = {};
   for (const [id, x] of Object.entries(s.rp)) {
@@ -37,18 +37,18 @@ export function split(s: LeaderState): { priv: PrivateDoc; prog: ProgressDoc } {
     },
     prog: {
       picks: s.picks, growth: s.growth, rp, updatedAt: s.updatedAt,
-      summary: { overall: overall(s), modules: MODULES.map((m) => ({ id: m.id, pct: modProgress(s, m).pct })) },
+      summary: { overall: overall(s, program), modules: program.modules.map((m) => ({ id: m.id, pct: modProgress(s, m, program).pct })) },
     },
   };
 }
 
-export function join(priv: Partial<PrivateDoc> | null, prog: Partial<ProgressDoc> | null): LeaderState {
+export function join(priv: Partial<PrivateDoc> | null, prog: Partial<ProgressDoc> | null, program: ProgramContent): LeaderState {
   const b = blankState();
   const rp: LeaderState["rp"] = {};
   // Built-in conversations plus the leader's own scenarios (ids starting "c:").
-  const ids = new Set([...ROLEPLAYS.map((r) => r.id), ...Object.keys(prog?.rp ?? {}), ...Object.keys(priv?.turns ?? {})]);
+  const ids = new Set([...program.roleplays.map((r) => r.id), ...Object.keys(prog?.rp ?? {}), ...Object.keys(priv?.turns ?? {})]);
   for (const id of ids) {
-    if (!ROLEPLAYS.some((r) => r.id === id) && !isCustomId(id)) continue;
+    if (!program.roleplays.some((r) => r.id === id) && !isCustomId(id)) continue;
     const p = prog?.rp?.[id], t = priv?.turns?.[id];
     if (p || t) rp[id] = { mode: p?.mode ?? "realistic", fb: p?.fb ?? null, history: p?.history ?? [], turns: t ?? [] };
   }
@@ -78,7 +78,10 @@ export function useSaveStatus() {
 
 // ---------- saving ----------
 const SAVE_DELAY = 1200; // same short debounce as the reference page
-let uid: string | null = null;
+// The signed-in leader's enrollment (their place in one program) and that program.
+let session: { userId: string; enrollmentId: string; program: ProgramContent } | null = null;
+/** The enrollment the signed-in leader is working in (used by sharing, custom scenarios and practice). */
+export const currentEnrollmentId = () => session?.enrollmentId ?? null;
 let lastSent = { priv: "", prog: "" };
 let timer: ReturnType<typeof setTimeout> | undefined;
 let writing = false, pending = false, retryMs = 5000;
@@ -89,9 +92,10 @@ function schedule(ms = SAVE_DELAY) {
 }
 
 async function flush() {
-  if (!uid) return;
+  if (!session) return;
+  const { userId, enrollmentId, program } = session;
   if (writing) { pending = true; return; }
-  const { priv, prog } = split(getState());
+  const { priv, prog } = split(getState(), program);
   const body = { priv: JSON.stringify(priv), prog: JSON.stringify(prog) };
   if (body.priv === lastSent.priv && body.prog === lastSent.prog) { setStatus("saved"); return; }
   writing = true;
@@ -100,7 +104,7 @@ async function flush() {
   try {
     const save = async (key: "priv" | "prog", table: string, data: object) => {
       if (body[key] === lastSent[key]) return;
-      const { error } = await db.from(table).upsert({ user_id: uid, data });
+      const { error } = await db.from(table).upsert({ user_id: userId, enrollment_id: enrollmentId, data }, { onConflict: "enrollment_id" });
       if (error) throw error;
       lastSent[key] = body[key];
     };
@@ -130,7 +134,7 @@ export async function flushNow() {
 /** Stop saving for this leader (after signing out). */
 export function stopSync() {
   clearTimeout(timer);
-  uid = null;
+  session = null;
 }
 
 let lastTouch = 0;
@@ -142,10 +146,10 @@ function touch() {
 }
 
 let wired = false;
-/** Load a signed-in leader's progress and keep it saved from then on. */
-export async function startSync(userId: string) {
-  uid = userId;
-  setUser(userId);
+/** Load a signed-in leader's progress in one program (enrollment) and keep it saved from then on. */
+export async function startSync(userId: string, enrollmentId: string, program: ProgramContent) {
+  session = { userId, enrollmentId, program };
+  setUser(enrollmentId);
   if (!wired) {
     wired = true;
     onLocalChange(() => { setStatus("saving"); schedule(); });
@@ -153,15 +157,15 @@ export async function startSync(userId: string) {
   }
   const db = supabaseBrowser();
   const [priv, prog] = await Promise.all([
-    db.from("leader_private").select("data").eq("user_id", userId).maybeSingle(),
-    db.from("leader_progress").select("data").eq("user_id", userId).maybeSingle(),
+    db.from("leader_private").select("data").eq("enrollment_id", enrollmentId).maybeSingle(),
+    db.from("leader_progress").select("data").eq("enrollment_id", enrollmentId).maybeSingle(),
   ]);
   if (priv.error || prog.error) { setStatus("offline"); schedule(retryMs); return; }
-  const remote = join(priv.data?.data ?? null, prog.data?.data ?? null);
+  const remote = join(priv.data?.data ?? null, prog.data?.data ?? null, program);
   lastSent = { priv: priv.data ? JSON.stringify(priv.data.data) : "", prog: prog.data ? JSON.stringify(prog.data.data) : "" };
   // Newest copy wins, as on the reference page.
   if (remote.updatedAt > getState().updatedAt) replaceState(remote);
-  await loadShared(userId);
+  await loadShared(enrollmentId);
   touch();
   setStatus("saved");
   schedule(0);

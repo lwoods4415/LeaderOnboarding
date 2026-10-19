@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useEffect } from "react";
-import { MEASURES, MODULES, PROGRAM, roleplayFor, type Module, type Roleplay } from "@/content";
+import type { Module, Roleplay } from "@/content";
+import { useProgram } from "@/lib/program";
 import { PROGRAM_NAME } from "@/program.config";
 import { raw } from "@/lib/html";
 import { modProgress, rpAvg } from "@/lib/progress";
@@ -13,9 +14,11 @@ import { Scenario } from "./Scenario";
 
 export function ModulePage({ id }: { id: string }) {
   const s = useLeader();
+  const program = useProgram();
+  const { modules: MODULES, measures: MEASURES, program: PROGRAM, roleplayFor } = program;
   const i = MODULES.findIndex((x) => x.id === id);
   const m = MODULES[i];
-  const p = modProgress(s, m);
+  const p = modProgress(s, m, program);
   const rp = roleplayFor(m.id);
   const prev = MODULES[i - 1], next = MODULES[i + 1];
   // Set here rather than in generateMetadata, which would block prefetching on URL data.

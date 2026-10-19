@@ -1,24 +1,44 @@
 "use client";
-// Loads the signed-in leader's profile, starts saving their progress, and shares the profile with pages.
+// Loads the signed-in person: their profile, organization and role, their enrollment (program + plan),
+// and their organization's copy of the program. Then starts saving their progress.
 import { useRouter } from "next/navigation";
 import { createContext, use, useEffect, useState } from "react";
+import type { ProgramContent } from "@/content/program";
+import { makeProgram, ProgramProvider, type Program } from "@/lib/program";
 import { forgetDevice } from "@/lib/store";
 import { flushNow, startSync, stopSync, useSaveStatus } from "@/lib/sync";
 import { supabaseBrowser } from "@/lib/supabase/client";
+
+export type Plan = "free" | "essentials" | "complete" | "cohort" | "company";
 
 export type Profile = {
   id: string;
   email: string;
   name: string;
-  role: "leader" | "admin";
   active: boolean;
+  isSuperAdmin: boolean;
+  orgId: string;
+  orgName: string;
+  /** Their role in this organization. Org admins get the dashboard and the Leaders and cohorts page. */
+  orgRole: "org_admin" | "leader";
+  enrollmentId: string;
+  orgProgramId: string;
+  plan: Plan;
   cohort: string | null;
 };
 
 const AccountContext = createContext<Profile | null>(null);
 export const useProfile = () => use(AccountContext);
 
-type Phase = { kind: "loading" } | { kind: "ready"; profile: Profile } | { kind: "blocked" } | { kind: "error" };
+type Phase =
+  | { kind: "loading" }
+  | { kind: "ready"; profile: Profile; program: Program }
+  | { kind: "blocked" }
+  | { kind: "no-program"; isSuperAdmin: boolean }
+  | { kind: "error" };
+
+type Membership = { org_id: string; role: "org_admin" | "leader"; active: boolean; organizations: { name: string; status: string } | null };
+type Enrollment = { id: string; org_id: string; org_program_id: string; plan: Plan; status: string; cohorts: { name: string } | null };
 
 export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
@@ -30,17 +50,38 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       const { data: auth } = await db.auth.getUser();
       if (!auth.user) { router.replace("/signin"); return; }
-      const { data, error } = await db
-        .from("profiles")
-        .select("id, email, name, role, active, cohorts(name)")
-        .eq("id", auth.user.id)
-        .maybeSingle();
+      const me = auth.user.id;
+      const [profile, memberships, enrollments] = await Promise.all([
+        db.from("profiles").select("id, email, name, active, is_super_admin").eq("id", me).maybeSingle(),
+        db.from("memberships").select("org_id, role, active, organizations(name, status)").eq("user_id", me),
+        db.from("enrollments").select("id, org_id, org_program_id, plan, status, cohorts(name)").eq("user_id", me).eq("status", "active"),
+      ]);
       if (cancelled) return;
-      if (error) { setPhase({ kind: "error" }); return; }
-      if (!data || !data.active) { setPhase({ kind: "blocked" }); return; }
-      const cohort = (data.cohorts as { name: string } | null)?.name ?? null;
-      setPhase({ kind: "ready", profile: { id: data.id, email: data.email, name: data.name, role: data.role, active: data.active, cohort } });
-      void startSync(data.id);
+      if (profile.error || memberships.error || enrollments.error) { setPhase({ kind: "error" }); return; }
+      const p = profile.data;
+      if (!p || !p.active) { setPhase({ kind: "blocked" }); return; }
+
+      // The first active enrollment in an organization they're an active member of.
+      const activeOrgs = new Map((memberships.data as Membership[]).filter((m) => m.active && m.organizations?.status === "active").map((m) => [m.org_id, m]));
+      const enrollment = (enrollments.data as Enrollment[]).find((e) => activeOrgs.has(e.org_id));
+      if (!enrollment) { setPhase(activeOrgs.size || !p.is_super_admin ? { kind: "blocked" } : { kind: "no-program", isSuperAdmin: true }); return; }
+      const membership = activeOrgs.get(enrollment.org_id)!;
+
+      const op = await db.from("org_programs").select("content").eq("id", enrollment.org_program_id).maybeSingle();
+      if (cancelled) return;
+      if (op.error || !op.data) { setPhase({ kind: "error" }); return; }
+      const content = op.data.content as ProgramContent;
+
+      setPhase({
+        kind: "ready",
+        program: makeProgram(content),
+        profile: {
+          id: p.id, email: p.email, name: p.name, active: p.active, isSuperAdmin: p.is_super_admin,
+          orgId: enrollment.org_id, orgName: membership.organizations?.name ?? "", orgRole: membership.role,
+          enrollmentId: enrollment.id, orgProgramId: enrollment.org_program_id, plan: enrollment.plan, cohort: enrollment.cohorts?.name ?? null,
+        },
+      });
+      void startSync(p.id, enrollment.id, content);
     })();
     return () => { cancelled = true; };
   }, [router]);
@@ -52,7 +93,14 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   if (phase.kind === "blocked") {
     return <Notice title="Your access isn't active" body="This account doesn't have access to the program right now. If you think that's a mistake, contact your program leader." />;
   }
-  return <AccountContext value={phase.profile}>{children}</AccountContext>;
+  if (phase.kind === "no-program") {
+    return <Notice title="You're not enrolled in a program" body="This account manages the platform but isn't enrolled in a program itself." />;
+  }
+  return (
+    <AccountContext value={phase.profile}>
+      <ProgramProvider program={phase.program}>{children}</ProgramProvider>
+    </AccountContext>
+  );
 }
 
 function Notice({ title, body }: { title: string; body: string }) {

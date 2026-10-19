@@ -15,12 +15,15 @@ function setShared(fn: (shared: LeaderState["shared"]) => void) {
   replaceState(next);
 }
 
-/** Load what this leader currently shares, so the buttons show the right state on every device. */
-export async function loadShared(userId: string) {
+let enrollment: string | null = null;
+
+/** Load what this leader currently shares in this program, so the buttons show the right state on every device. */
+export async function loadShared(enrollmentId: string) {
+  enrollment = enrollmentId;
   const { data, error } = await supabaseBrowser()
     .from("shared_items")
     .select("kind, item_id, content, shared_at")
-    .eq("user_id", userId);
+    .eq("enrollment_id", enrollmentId);
   if (error) return;
   setShared((s) => {
     s.refl = {};
@@ -36,18 +39,18 @@ export async function loadShared(userId: string) {
 async function upsert(kind: Kind, itemId: string, content: object) {
   const db = supabaseBrowser();
   const { data: auth } = await db.auth.getUser();
-  if (!auth.user) throw new Error("signed out");
+  if (!auth.user || !enrollment) throw new Error("signed out");
   const { error } = await db
     .from("shared_items")
-    .upsert({ user_id: auth.user.id, kind, item_id: itemId, content, shared_at: new Date().toISOString() }, { onConflict: "user_id,kind,item_id" });
+    .upsert({ user_id: auth.user.id, enrollment_id: enrollment, kind, item_id: itemId, content, shared_at: new Date().toISOString() }, { onConflict: "enrollment_id,kind,item_id" });
   if (error) throw error;
 }
 
 async function remove(kind: Kind, itemId: string) {
   const db = supabaseBrowser();
   const { data: auth } = await db.auth.getUser();
-  if (!auth.user) throw new Error("signed out");
-  const { error } = await db.from("shared_items").delete().eq("user_id", auth.user.id).eq("kind", kind).eq("item_id", itemId);
+  if (!auth.user || !enrollment) throw new Error("signed out");
+  const { error } = await db.from("shared_items").delete().eq("enrollment_id", enrollment).eq("kind", kind).eq("item_id", itemId);
   if (error) throw error;
 }
 

@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { MODULES, PULSE_OPEN, PULSE_Q, ROLEPLAYS, SELF_SKILLS, type Module } from "@/content";
+import type { Module } from "@/content";
+import { useProgram } from "@/lib/program";
 import { raw } from "@/lib/html";
 import { avgOf, modProgress } from "@/lib/progress";
 import type { ScenarioAttempt, ScenarioPicks } from "@/lib/state";
@@ -23,13 +24,16 @@ export function BarPair({ a, b, max }: { a: number; b: number; max: number }) {
   return <div className="bars"><div className="b0" style={{ width: `${w(a)}%` }} /><div className="b1" style={{ width: `${w(b)}%` }} /></div>;
 }
 
-const PULSE_TEXT =
+const pulseText = (pulseQ: string[], pulseOpen: string[]) =>
   "Team pulse (anonymous)\nRate each from 1 (strongly disagree) to 5 (strongly agree).\n\n" +
-  PULSE_Q.map((q, i) => i + 1 + ". " + q).join("\n") +
-  "\n\nOpen questions:\n" + PULSE_OPEN.map((q) => "- " + q).join("\n");
+  pulseQ.map((q, i) => i + 1 + ". " + q).join("\n") +
+  "\n\nOpen questions:\n" + pulseOpen.map((q) => "- " + q).join("\n");
 
 export function Growth() {
   const s = useLeader();
+  const program = useProgram();
+  const { modules: MODULES, roleplays: ROLEPLAYS, selfSkills: SELF_SKILLS, pulseQ: PULSE_Q, pulseOpen: PULSE_OPEN } = program;
+  const PULSE_TEXT = pulseText(PULSE_Q, PULSE_OPEN);
   const g = s.growth;
   const open = useOpenRoleplay();
   const customs = useCustomScenarios();
@@ -68,7 +72,7 @@ export function Growth() {
       <section className="blk"><h3>My progress</h3><p className="lede">How far you are through each module. Each one counts its scenario, practice conversation, practice items and reflections.</p>
         <div className="checks">
           {MODULES.map((m) => {
-            const p = modProgress(s, m);
+            const p = modProgress(s, m, program);
             return (
               <Link key={m.id} href={`/module/${m.id}`} scroll={false} className="check linkrow">
                 <span className="min">{p.pct}%</span>
@@ -155,7 +159,7 @@ export function Attempt({ m, a, label, said }: { m: Module; a: ScenarioAttempt; 
 }
 
 function ScenarioHistory({ picks }: { picks: Record<string, ScenarioPicks> }) {
-  const worked = MODULES.filter((m) => picks[m.id]?.first);
+  const worked = useProgram().modules.filter((m) => picks[m.id]?.first);
   if (!worked.length) return <p className="note">Your answers appear here once you work through a module&apos;s scenario.</p>;
   return (
     <div className="stack">

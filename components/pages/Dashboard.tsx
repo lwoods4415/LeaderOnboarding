@@ -3,7 +3,8 @@
 // renderLeaderDetail. Shows only what the privacy rules allow: progress, scenario answers,
 // practice scores and feedback, growth numbers, and items each leader chose to share.
 import { useEffect, useMemo, useState } from "react";
-import { MODULES, PULSE_Q, ROLEPLAYS, SELF_SKILLS } from "@/content";
+import type { ProgramContent } from "@/content/program";
+import { useProgram } from "@/lib/program";
 import { raw } from "@/lib/html";
 import { rpAvg } from "@/lib/progress";
 import {
@@ -29,16 +30,20 @@ export function Dashboard() {
   const [error, setError] = useState(false);
   const [cohort, setCohort] = useState("");
   const [sel, setSel] = useState<string | null>(null);
-  const isAdmin = profile?.role === "admin";
+  const program = useProgram();
+  const { modules: MODULES } = program;
+  const isAdmin = profile?.orgRole === "org_admin";
+  const load = () => loadDashboard(profile!.orgId, profile!.orgProgramId, program);
 
   useEffect(() => {
-    if (isAdmin) loadDashboard().then(setData, () => setError(true));
-  }, [isAdmin]);
+    if (isAdmin) load().then(setData, () => setError(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per organization
+  }, [isAdmin, profile?.orgId]);
 
   const cohorts = useMemo(() => [...new Set((data?.leaders ?? []).map((l) => l.cohort).filter(Boolean))].sort(), [data]);
   const docs = useMemo(() => (data?.leaders ?? []).filter((l) => !cohort || l.cohort === cohort), [data, cohort]);
 
-  if (!isAdmin) return <><div className="mhead"><h2>Cohort dashboard</h2></div><p>Only the program owner can see this page.</p></>;
+  if (!isAdmin) return <><div className="mhead"><h2>Cohort dashboard</h2></div><p>Only your organization&apos;s program admins can see this page.</p></>;
 
   const head = (
     <>
@@ -51,8 +56,8 @@ export function Dashboard() {
           </select>
         </label>
         <span className="note">{docs.length} leader{docs.length === 1 ? "" : "s"}.</span>
-        {docs.length ? <button className="btn" onClick={() => download(docs, cohort)}>Download summary (CSV)</button> : null}
-        <button className="btn ghost" onClick={() => { setData(null); loadDashboard().then(setData, () => setError(true)); }}>Refresh</button>
+        {docs.length ? <button className="btn" onClick={() => download(docs, cohort, program)}>Download summary (CSV)</button> : null}
+        <button className="btn ghost" onClick={() => { setData(null); load().then(setData, () => setError(true)); }}>Refresh</button>
       </div>
     </>
   );
@@ -64,10 +69,10 @@ export function Dashboard() {
 
   const comp = avg(docs.map((d) => d.overall));
   const prac = avg(docs.map(practiceAvg));
-  const selfD = avg(docs.map((d) => change(selfAvg(d, 0), selfAvg(d, 12))));
-  const pulseD = avg(docs.map((d) => change(pulseAvg(d, 0), pulseAvg(d, 12))));
-  const skills = lowestSkills(docs);
-  const scen = strongChoices(docs);
+  const selfD = avg(docs.map((d) => change(selfAvg(d, 0, program), selfAvg(d, 12, program))));
+  const pulseD = avg(docs.map((d) => change(pulseAvg(d, 0, program), pulseAvg(d, 12, program))));
+  const skills = lowestSkills(docs, program);
+  const scen = strongChoices(docs, program);
   const ids = new Set(docs.map((d) => d.id));
   const usage = data.usage.filter((u) => u.userId && ids.has(u.userId));
   const costs = usage.map(costOf);
@@ -125,8 +130,8 @@ export function Dashboard() {
   );
 }
 
-function download(docs: DashLeader[], cohort: string) {
-  const blob = new Blob(["﻿" + summaryCsv(docs)], { type: "text/csv;charset=utf-8" });
+function download(docs: DashLeader[], cohort: string, program: ProgramContent) {
+  const blob = new Blob(["﻿" + summaryCsv(docs, program)], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = `leader-onboarding-${(cohort || "all-cohorts").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${new Date().toISOString().slice(0, 10)}.csv`;
@@ -135,6 +140,8 @@ function download(docs: DashLeader[], cohort: string) {
 }
 
 function LeaderDetail({ d }: { d: DashLeader }) {
+  const program = useProgram();
+  const { modules: MODULES, roleplays: ROLEPLAYS, selfSkills: SELF_SKILLS, pulseQ: PULSE_Q } = program;
   const g = d.growth;
   const growthRows = (labels: string[], a?: Record<string, string>, b?: Record<string, string>) => labels.map((l, i) => (
     <div className="gr" key={i}><span {...raw(l)} /><span>{a?.[i] || "–"}</span><span>{b?.[i] || "–"}</span><div><BarPair a={Number(a?.[i]) || 0} b={Number(b?.[i]) || 0} max={5} /></div></div>
@@ -150,7 +157,7 @@ function LeaderDetail({ d }: { d: DashLeader }) {
   return (
     <section className="blk detail" id="dash-detail">
       <div className="detail-head"><div><span className="eyebrow">{d.cohort || "No cohort"} · last active {ago(d.lastActive)}</span><h3>{d.name}</h3></div><div className="score"><b>{d.overall}%</b><span>complete</span></div></div>
-      <p className="note">Currently on: <span {...raw(currentModule(d))} /></p>
+      <p className="note">Currently on: <span {...raw(currentModule(d, program))} /></p>
 
       <h4 className="dh">Scenario answers: first try and latest</h4>
       {worked.length ? <div className="stack">{worked.map((m) => {

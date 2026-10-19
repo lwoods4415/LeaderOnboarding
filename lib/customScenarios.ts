@@ -5,6 +5,7 @@ import { CUSTOM_LIMITS, CUSTOM_PREFIX, type CustomScenario } from "@/content/cus
 import { unshareConversation } from "./sharing";
 import { getState, update } from "./store";
 import { supabaseBrowser } from "./supabase/client";
+import { currentEnrollmentId } from "./sync";
 
 type Snapshot = { loaded: boolean; list: CustomScenario[] };
 let snap: Snapshot = { loaded: false, list: [] };
@@ -17,7 +18,9 @@ const COLUMNS = "id, title, who, role, situation, goal, reactions, hidden";
 async function load() {
   if (loading) return;
   loading = true;
-  const { data, error } = await supabaseBrowser().from("custom_scenarios").select(COLUMNS).order("created_at");
+  const enrollmentId = currentEnrollmentId();
+  if (!enrollmentId) { loading = false; return; }
+  const { data, error } = await supabaseBrowser().from("custom_scenarios").select(COLUMNS).eq("enrollment_id", enrollmentId).order("created_at");
   loading = false;
   if (!error) set({ loaded: true, list: data as CustomScenario[] });
 }
@@ -53,8 +56,9 @@ const clean = (s: ScenarioInput): ScenarioInput =>
 export async function createScenario(input: ScenarioInput): Promise<CustomScenario> {
   const db = supabaseBrowser();
   const { data: auth } = await db.auth.getUser();
-  if (!auth.user) throw new Error("signed out");
-  const { data, error } = await db.from("custom_scenarios").insert({ ...clean(input), user_id: auth.user.id }).select(COLUMNS).single();
+  const enrollmentId = currentEnrollmentId();
+  if (!auth.user || !enrollmentId) throw new Error("signed out");
+  const { data, error } = await db.from("custom_scenarios").insert({ ...clean(input), user_id: auth.user.id, enrollment_id: enrollmentId }).select(COLUMNS).single();
   if (error) throw error;
   set({ loaded: true, list: [...snap.list, data as CustomScenario] });
   return data as CustomScenario;

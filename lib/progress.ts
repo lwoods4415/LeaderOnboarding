@@ -1,9 +1,12 @@
 // Progress rules, ported from the reference page's modProgress(), overall(), rpAvg() and avgOf().
-import { MODULES, roleplayFor, type Module } from "@/content";
+import type { Module, Roleplay } from "@/content";
 import type { Feedback, LeaderState } from "./state";
 
-export function modProgress(s: LeaderState, m: Module) {
-  const rp = roleplayFor(m.id);
+/** The parts of a program the progress rules need (the leader's own program, from useProgram()). */
+type ProgramShape = { modules: Module[]; roleplays: Roleplay[] };
+
+export function modProgress(s: LeaderState, m: Module, program: ProgramShape) {
+  const rp = program.roleplays.find((r) => r.mod === m.id);
   let done = 0;
   const total = m.practice.length + m.reflect.length + 1 + (rp ? 1 : 0);
   m.practice.forEach((p) => { if (s.checks[p.id]) done++; });
@@ -14,9 +17,9 @@ export function modProgress(s: LeaderState, m: Module) {
   return { done, total, pct: Math.round((done / total) * 100) };
 }
 
-export function overall(s: LeaderState) {
+export function overall(s: LeaderState, program: ProgramShape) {
   let d = 0, t = 0;
-  MODULES.forEach((m) => { const p = modProgress(s, m); d += p.done; t += p.total; });
+  program.modules.forEach((m) => { const p = modProgress(s, m, program); d += p.done; t += p.total; });
   return Math.round((d / t) * 100);
 }
 

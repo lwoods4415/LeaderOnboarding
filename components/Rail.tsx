@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { MODULES, ROLEPLAYS } from "@/content";
+import { useProgram } from "@/lib/program";
 import { modProgress, overall } from "@/lib/progress";
 import { useLeader } from "@/lib/store";
 import { useProfile } from "./Account";
@@ -21,8 +21,10 @@ function Item({ href, t, w, pct, current }: { href: string; t: string; w?: strin
 export function Rail() {
   const s = useLeader();
   const path = usePathname();
-  const isAdmin = useProfile()?.role === "admin";
-  const rpDone = ROLEPLAYS.filter((r) => s.rp[r.id]?.fb).length;
+  const profile = useProfile();
+  const program = useProgram();
+  const isOrgAdmin = profile?.orgRole === "org_admin";
+  const rpDone = program.roleplays.filter((r) => s.rp[r.id]?.fb).length;
   const at = (href: string) => path === href;
 
   // Like the reference page, bring the top of the section into view after moving between sections.
@@ -35,16 +37,17 @@ export function Rail() {
   return (
     <aside className="rail" aria-label="Sections">
       <div className="grp">Start here</div>
-      <Item href="/" t="Program overview" w="How it works" pct={overall(s)} current={at("/")} />
+      <Item href="/" t="Program overview" w="How it works" pct={overall(s, program)} current={at("/")} />
       <Item href="/growth" t="My growth" w="Week 0 and Week 12" current={at("/growth")} />
-      {isAdmin ? <Item href="/dashboard" t="Cohort dashboard" w="Only visible to you" current={at("/dashboard")} /> : null}
-      {isAdmin ? <Item href="/admin" t="Leaders and cohorts" w="Invites and access" current={at("/admin")} /> : null}
+      {isOrgAdmin ? <Item href="/dashboard" t="Cohort dashboard" w="Only visible to you" current={at("/dashboard")} /> : null}
+      {isOrgAdmin ? <Item href="/admin" t="Leaders and cohorts" w="Invites and access" current={at("/admin")} /> : null}
+      {profile?.isSuperAdmin ? <Item href="/platform" t="Platform" w="All organizations" current={at("/platform")} /> : null}
       <div className="grp">Modules</div>
-      {MODULES.map((m) => (
-        <Item key={m.id} href={`/module/${m.id}`} t={m.short} w={m.weeks} pct={modProgress(s, m).pct} current={at(`/module/${m.id}`)} />
+      {program.modules.map((m) => (
+        <Item key={m.id} href={`/module/${m.id}`} t={m.short} w={m.weeks} pct={modProgress(s, m, program).pct} current={at(`/module/${m.id}`)} />
       ))}
       <div className="grp">Practice</div>
-      <Item href="/studio" t="Practice studio" w={`${rpDone} of ${ROLEPLAYS.length} conversations`} current={at("/studio")} />
+      <Item href="/studio" t="Practice studio" w={`${rpDone} of ${program.roleplays.length} conversations`} current={at("/studio")} />
       <Item href="/lab" t="Leader lab guide" w="Cohort sessions" current={at("/lab")} />
       <div className="grp">Resources</div>
       <Item href="/pathway" t="Performance pathway" w="Stages and documentation" current={at("/pathway")} />

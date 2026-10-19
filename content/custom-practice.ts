@@ -1,6 +1,5 @@
 // Custom practice scenarios: the standard rubric every leader-written scenario is scored on,
 // and the form limits. Not part of the reference page; approved by the program owner, 2026-10-16.
-import { MODES } from "./leading-people/roleplays";
 import type { Difficulty } from "./types";
 
 /** The five core skills from the program, used to score every custom scenario. */
@@ -30,4 +29,4 @@ export type CustomScenario = {
 };
 
 /** The difficulty description, about the leader's character instead of "the nurse". */
-export const customMode = (mode: Difficulty, who: string) => MODES[mode].replace("the nurse", who);
+export const customMode = (modes: Record<Difficulty, string>, mode: Difficulty, who: string) => modes[mode].replace("the nurse", who);

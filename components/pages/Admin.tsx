@@ -18,18 +18,19 @@ export function Admin() {
   const [cohortName, setCohortName] = useState("");
   const [link, setLink] = useState<{ name: string; url: string; copied: boolean } | null>(null);
 
-  const refresh = useCallback(() => loadAdminData().then(setData, () => setMsg({ ok: false, message: "Couldn't load leaders. Refresh the page." })), []);
-  useEffect(() => { if (profile?.role === "admin") void refresh(); }, [profile, refresh]);
+  const orgId = profile?.orgId ?? "";
+  const refresh = useCallback(() => loadAdminData(orgId).then(setData, () => setMsg({ ok: false, message: "Couldn't load leaders. Refresh the page." })), [orgId]);
+  useEffect(() => { if (profile?.orgRole === "org_admin") void refresh(); }, [profile, refresh]);
 
-  if (profile?.role !== "admin") {
-    return <><div className="mhead"><h2>Leaders and cohorts</h2></div><p>Only the program owner can see this page.</p></>;
+  if (profile?.orgRole !== "org_admin") {
+    return <><div className="mhead"><h2>Leaders and cohorts</h2></div><p>Only your organization&apos;s program admins can see this page.</p></>;
   }
 
   // A one-time sign-in link to share directly (no email), shown with a copy button.
   const copyLink = (id: string, name: string) =>
     start(async () => {
       try {
-        const r = await createSignInLink(id);
+        const r = await createSignInLink(orgId, id);
         if (!r.ok || !r.url) { setMsg(r); return; }
         const url = r.url;
         let copied = false;
@@ -58,7 +59,7 @@ export function Admin() {
       {msg ? <p className={msg.ok ? "msg-ok" : "msg-err"} role="status" style={{ marginBottom: 18 }}>{msg.message}</p> : null}
 
       <section className="blk"><h3>Invite a leader</h3><p className="lede">They&apos;ll get an email with a link to sign in. No password is needed.</p>
-        <form className="form-row" onSubmit={(e) => { e.preventDefault(); run(() => inviteLeader(form), () => setForm({ name: "", email: "", cohortId: form.cohortId })); }}>
+        <form className="form-row" onSubmit={(e) => { e.preventDefault(); run(() => inviteLeader(orgId, form), () => setForm({ name: "", email: "", cohortId: form.cohortId })); }}>
           <label htmlFor="inv-name">Name<input type="text" id="inv-name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
           <label htmlFor="inv-email">Email<input type="text" inputMode="email" id="inv-email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
           <label htmlFor="inv-cohort">Cohort
@@ -73,7 +74,7 @@ export function Admin() {
 
       <section className="blk"><h3>Cohorts</h3>
         <p className="lede">{data?.cohorts.length ? data.cohorts.map((c) => c.name).join(" · ") : "No cohorts yet."}</p>
-        <form className="dash-bar" onSubmit={(e) => { e.preventDefault(); run(() => createCohort(cohortName), () => setCohortName("")); }}>
+        <form className="dash-bar" onSubmit={(e) => { e.preventDefault(); run(() => createCohort(orgId, cohortName), () => setCohortName("")); }}>
           <label htmlFor="new-cohort">New cohort <input type="text" id="new-cohort" placeholder="e.g. Pilot, fall 2026" value={cohortName} onChange={(e) => setCohortName(e.target.value)} /></label>
           <button className="btn" disabled={busy}>Create cohort</button>
         </form>
@@ -98,9 +99,9 @@ export function Admin() {
             <tbody>
               {data.leaders.map((l) => (
                 <tr key={l.id}>
-                  <th>{l.name || l.email}<small>{l.email}{l.role === "admin" ? " · admin" : ""}</small></th>
+                  <th>{l.name || l.email}<small>{l.email}{l.role === "org_admin" ? " · admin" : ""}</small></th>
                   <td>
-                    <select aria-label={`Cohort for ${l.name}`} value={l.cohortId ?? ""} disabled={busy} onChange={(e) => { const v = e.target.value; run(() => moveLeader(l.id, v)); }}>
+                    <select aria-label={`Cohort for ${l.name}`} value={l.cohortId ?? ""} disabled={busy} onChange={(e) => { const v = e.target.value; run(() => moveLeader(orgId, l.id, v)); }}>
                       <option value="">No cohort</option>
                       {data.cohorts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
@@ -112,11 +113,11 @@ export function Admin() {
                       : l.active
                         ? <>
                             <button className="btn ghost" disabled={busy} onClick={() => copyLink(l.id, l.name || l.email)}>Copy sign-in link</button>{" "}
-                            <button className="btn ghost" disabled={busy} onClick={() => { if (confirm(`Remove ${l.name || l.email}'s access? Their progress is kept and you can restore it later.`)) run(() => setAccess(l.id, false)); }}>Remove access</button>
+                            <button className="btn ghost" disabled={busy} onClick={() => { if (confirm(`Remove ${l.name || l.email}'s access? Their progress is kept and you can restore it later.`)) run(() => setAccess(orgId, l.id, false)); }}>Remove access</button>
                           </>
                         : <>
-                            <button className="btn ghost" disabled={busy} onClick={() => run(() => setAccess(l.id, true))}>Restore access</button>{" "}
-                            <button className="btn ghost" disabled={busy} onClick={() => { if (confirm(`Permanently delete ${l.name || l.email} and everything they saved? This can't be undone.`)) run(() => deleteLeader(l.id)); }}>Delete permanently</button>
+                            <button className="btn ghost" disabled={busy} onClick={() => run(() => setAccess(orgId, l.id, true))}>Restore access</button>{" "}
+                            <button className="btn ghost" disabled={busy} onClick={() => { if (confirm(`Permanently delete ${l.name || l.email} and everything they saved? This can't be undone.`)) run(() => deleteLeader(orgId, l.id)); }}>Delete permanently</button>
                           </>}
                   </td>
                 </tr>
