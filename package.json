@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:rls": "node --env-file=.env.local --test tests/rls-v1.test.mjs",
+    "test:rls": "node --env-file=.env.local --test tests/rls.test.mjs",
     "verify:content": "node scripts/verify-content.mjs",
     "check:bundle": "node --env-file=.env.local scripts/check-bundle.mjs",
     "dev:staging": "node scripts/with-env.mjs .env.staging.local next dev -p 3001",
