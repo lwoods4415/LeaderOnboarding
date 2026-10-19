@@ -53,21 +53,26 @@ export async function loadAdminData(orgId: string): Promise<AdminData> {
   const { admin } = await requireOrgAdmin(orgId);
   const [cohorts, members, enrollments, users] = await Promise.all([
     admin.from("cohorts").select("id, name").eq("org_id", orgId).order("name"),
-    admin.from("memberships").select("user_id, role, active, profiles(email, name, last_active)").eq("org_id", orgId),
+    admin.from("memberships").select("user_id, role, active").eq("org_id", orgId),
     admin.from("enrollments").select("user_id, cohort_id").eq("org_id", orgId),
     admin.auth.admin.listUsers({ perPage: 1000 }),
   ]);
   const signedIn = new Set((users.data?.users ?? []).filter((u) => u.last_sign_in_at).map((u) => u.id));
+  const { data: profiles } = await admin.from("profiles").select("id, email, name, last_active").in("id", (members.data ?? []).map((m) => m.user_id));
+  const profileOf = new Map((profiles ?? []).map((p) => [p.id, p]));
   const cohortOf = new Map((enrollments.data ?? []).map((e) => [e.user_id, e.cohort_id as string | null]));
-  type Member = { user_id: string; role: "org_admin" | "leader"; active: boolean; profiles: { email: string; name: string; last_active: string | null } | null };
+  type Member = { user_id: string; role: "org_admin" | "leader"; active: boolean };
   return {
     cohorts: cohorts.data ?? [],
-    leaders: ((members.data ?? []) as unknown as Member[])
-      .filter((m) => m.profiles)
-      .map((m) => ({
-        id: m.user_id, email: m.profiles!.email, name: m.profiles!.name, role: m.role, active: m.active,
-        cohortId: cohortOf.get(m.user_id) ?? null, lastActive: m.profiles!.last_active, invitePending: !signedIn.has(m.user_id),
-      }))
+    leaders: ((members.data ?? []) as Member[])
+      .filter((m) => profileOf.has(m.user_id))
+      .map((m) => {
+        const p = profileOf.get(m.user_id)!;
+        return {
+          id: m.user_id, email: p.email, name: p.name, role: m.role, active: m.active,
+          cohortId: cohortOf.get(m.user_id) ?? null, lastActive: p.last_active, invitePending: !signedIn.has(m.user_id),
+        };
+      })
       .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email)),
   };
 }
@@ -165,8 +170,9 @@ export async function deleteLeader(orgId: string, userId: string): Promise<Resul
  */
 export async function createSignInLink(orgId: string, userId: string): Promise<Result & { url?: string }> {
   const { admin } = await requireOrgAdmin(orgId);
-  const { data: m } = await admin.from("memberships").select("active, profiles(email)").eq("org_id", orgId).eq("user_id", userId).maybeSingle();
-  const email = (m?.profiles as unknown as { email: string } | null)?.email;
+  const { data: m } = await admin.from("memberships").select("active").eq("org_id", orgId).eq("user_id", userId).maybeSingle();
+  const { data: who } = await admin.from("profiles").select("email").eq("id", userId).maybeSingle();
+  const email = who?.email;
   if (!m || !email) return fail("That leader wasn't found.");
   if (!m.active) return fail("Restore their access first.");
   const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email });

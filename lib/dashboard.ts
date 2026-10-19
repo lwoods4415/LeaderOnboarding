@@ -42,7 +42,7 @@ export async function loadDashboard(orgId: string, orgProgramId: string, program
   monthStart.setUTCDate(1);
   monthStart.setUTCHours(0, 0, 0, 0);
   const [members, enrollments, progress, shared, usage] = await Promise.all([
-    db.from("memberships").select("user_id, role, active, profiles(email, name, active, last_active)").eq("org_id", orgId),
+    db.from("memberships").select("user_id, role, active").eq("org_id", orgId),
     db.from("enrollments").select("id, user_id, status, cohorts(name)").eq("org_id", orgId).eq("org_program_id", orgProgramId),
     db.from("leader_progress").select("enrollment_id, data, enrollments!inner(org_id)").eq("enrollments.org_id", orgId),
     db.from("shared_items").select("enrollment_id, kind, item_id, content, shared_at, enrollments!inner(org_id)").eq("enrollments.org_id", orgId),
@@ -50,14 +50,19 @@ export async function loadDashboard(orgId: string, orgProgramId: string, program
   ]);
   const err = members.error ?? enrollments.error ?? progress.error ?? shared.error ?? usage.error;
   if (err) throw err;
+  type Profile = { id: string; email: string; name: string; active: boolean; last_active: string | null };
+  const memberIds = ((members.data ?? []) as { user_id: string }[]).map((m) => m.user_id);
+  const profiles = await db.from("profiles").select("id, email, name, active, last_active").in("id", memberIds);
+  if (profiles.error) throw profiles.error;
+  const profileOf = new Map(((profiles.data ?? []) as Profile[]).map((p) => [p.id, p]));
 
   type ProgressDoc = { picks?: DashLeader["picks"]; rp?: DashLeader["rp"]; growth?: Growth; summary?: { overall: number; modules: { id: string; pct: number }[] } };
   const prog = new Map((progress.data as { enrollment_id: string; data: ProgressDoc }[]).map((r) => [r.enrollment_id, r.data]));
-  type Member = { user_id: string; role: string; active: boolean; profiles: { email: string; name: string; active: boolean; last_active: string | null } | null };
-  const member = new Map((members.data as unknown as Member[]).map((m) => [m.user_id, m]));
+  type Member = { user_id: string; role: string; active: boolean };
+  const member = new Map((members.data as Member[]).map((m) => [m.user_id, m]));
   const leaders: DashLeader[] = [];
   for (const e of enrollments.data as unknown as { id: string; user_id: string; status: string; cohorts: { name: string } | null }[]) {
-    const m = member.get(e.user_id), p = m?.profiles;
+    const m = member.get(e.user_id), p = profileOf.get(e.user_id);
     // Leaders only (not org admins), with active access, as on the original dashboard.
     if (!m || !p || m.role !== "leader" || !m.active || !p.active || e.status !== "active") continue;
     const d = prog.get(e.id) ?? {};
@@ -91,8 +96,8 @@ export const avg = (arr: (number | null)[]) => {
 };
 /** Average of each conversation's latest score. */
 export const practiceAvg = (l: DashLeader) => avg(Object.values(l.rp).map((x) => (x.fb ? rpAvg(x.fb) : null)));
-export const selfAvg = (l: DashLeader, wk: 0 | 12, p: ProgramContent) => (l.growth ? avgOf(wk === 0 ? l.growth.self0 : l.growth.self12, p.selfSkills.length) : null);
-export const pulseAvg = (l: DashLeader, wk: 0 | 12, p: ProgramContent) => (l.growth ? avgOf(wk === 0 ? l.growth.pulse0 : l.growth.pulse12, p.pulseQ.length) : null);
+export const selfAvg = (l: DashLeader, wk: 0 | 12, p: ProgramContent) => (l.growth ? avgOf((wk === 0 ? l.growth.self0 : l.growth.self12) ?? {}, p.selfSkills.length) : null);
+export const pulseAvg = (l: DashLeader, wk: 0 | 12, p: ProgramContent) => (l.growth ? avgOf((wk === 0 ? l.growth.pulse0 : l.growth.pulse12) ?? {}, p.pulseQ.length) : null);
 export const change = (a: number | null, b: number | null) => (a != null && b != null ? round1(b - a) : null);
 
 export function currentModule(l: DashLeader, p: ProgramContent) {

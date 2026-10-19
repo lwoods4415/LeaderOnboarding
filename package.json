@@ -10,7 +10,7 @@
     "test:rls": "node --env-file=.env.local --test tests/rls-v1.test.mjs",
     "verify:content": "node scripts/verify-content.mjs",
     "check:bundle": "node --env-file=.env.local scripts/check-bundle.mjs",
-    "dev:staging": "node --env-file=.env.staging.local ./node_modules/next/dist/bin/next dev -p 3001",
+    "dev:staging": "node scripts/with-env.mjs .env.staging.local next dev -p 3001",
     "test:rls:staging": "node --env-file=.env.staging.local --test tests/rls.test.mjs"
   },
   "dependencies": {
