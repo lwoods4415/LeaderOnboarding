@@ -23,10 +23,10 @@ const PRICES: Record<string, [number, number]> = {
 export type Doc = { content: ProgramContent; secrets: ProgramSecrets };
 export type Change = { path: string; before: string; after: string };
 
-// Keys whose strings are ids, settings or research citations, and parts kept word for word everywhere
-// (difficulty instructions, book list, Brené Brown's BRAVING definitions).
-const SKIP_KEYS = new Set(["id", "wk", "key", "type", "prefix", "r", "mod", "passage", "skills", "src", "weeks"]);
-const SKIP_TOP = new Set(["modes", "books", "braving"]);
+// Keys whose strings are ids or settings, and parts kept word for word everywhere (the book list and
+// Brené Brown's BRAVING definitions).
+const SKIP_KEYS = new Set(["id", "wk", "key", "type", "prefix", "r", "mod", "passage", "weeks"]);
+const SKIP_TOP = new Set(["books", "braving"]);
 
 /** Every rewritable string in a program, by path (e.g. "content.modules.2.scenario.setup"). */
 export function leaves(doc: Doc): Map<string, string> {
@@ -94,6 +94,10 @@ What to keep, always:
 - The reader is the new leader, addressed as "you" in leader-facing text. Character descriptions stay in the third person.
 - Inline HTML tags exactly as they are (<em>, <b>, <i>): the same tags, the same number of them. Keep {placeholders} and line breaks exactly.
 - Roughly the same length, tone and reading level: plain, warm and direct. Short sentences. No jargon.
+- Research sources ("src") exactly, author and book names included. Only change a source label that names the old setting
+  (for example "Patient safety practice"). Research findings keep their original setting: Edmondson studied hospital teams.
+- Practice skill names ("skills") stay short rubric labels. Difficulty descriptions ("modes") tell the AI practice partner how
+  the character behaves: keep their meaning, and only change who the character is.
 
 Never invent facts about the organization (statistics, policies, products, real people). Never include real customer,
 patient or employee details. Use the organization's name sparingly, if at all.
@@ -156,7 +160,7 @@ function parts(doc: Doc, all: Map<string, string>) {
   for (const [path, text] of all) {
     const m = path.match(/^content\.modules\.(\d+)\./);
     if (m) { const mod = doc.content.modules[Number(m[1])]; add(`m${m[1]}`, `Module: ${mod.weeks}, ${mod.short}`, path, text); }
-    else if (path.startsWith("content.roleplays.") || path.startsWith("secrets.")) add("practice", "Practice conversations and the AI practice partner's characters (the character descriptions are private to the AI)", path, text);
+    else if (path.startsWith("content.roleplays.") || path.startsWith("content.modes.") || path.startsWith("secrets.")) add("practice", "Practice conversations and the AI practice partner's characters (the character descriptions are private to the AI)", path, text);
     else add("general", "Program introduction, sponsor guide, pathway, toolkit, growth measures and lab guide", path, text);
   }
   return [...groups.values()];
@@ -187,27 +191,42 @@ export async function tailor(input: { base: Doc; kind: IntakeKind | "template"; 
   const doc = copyDoc(input.base);
   const problems: string[] = [];
   const groups = parts(input.base, all);
-  await Promise.all(groups.map(async (g) => {
+  /** Asks for one batch of strings and applies the changes that pass the checks. */
+  async function pass(title: string, strings: Record<string, string>, instruction: string) {
     try {
       const out = (await ask(
         RULES,
-        `${intake}\n\n${briefText}${notes}\n\n<part>${g.title}</part>\n\nHere are the part's strings, by path. Return the ones that need adapting, with the full new text of each, and keep each path exactly as given.\n\n` +
-        JSON.stringify(g.strings, null, 1),
+        `${intake}\n\n${briefText}${notes}\n\n<part>${title}</part>\n\n${instruction} Return the full new text of each one you change, and keep each path exactly as given.\n\n` +
+        JSON.stringify(strings, null, 1),
         CHANGES_SCHEMA, usage,
       )) as { changes: { path: string; text: string }[] };
       for (const c of out.changes) {
-        const before = g.strings[c.path];
-        if (before === undefined) { problems.push(`${g.title}: unknown path ${c.path}`); continue; }
+        const before = strings[c.path];
+        if (before === undefined) { problems.push(`${title}: unknown path ${c.path}`); continue; }
         if (c.text === before) continue;
         const why = problemWith(before, c.text);
-        if (why) { problems.push(`${g.title}: kept the original of ${c.path} (the rewrite ${why})`); continue; }
+        if (why) { problems.push(`${title}: kept the original of ${c.path} (the rewrite ${why})`); continue; }
         setLeaf(doc, c.path, c.text);
       }
     } catch (err) {
       const why = err instanceof Anthropic.APIError ? `Claude error ${err.status}` : err instanceof Error ? err.message : "failed";
-      problems.push(`${g.title}: not adapted (${why}). The original text is kept; ask for a redraft to try again.`);
+      problems.push(`${title}: not adapted (${why}). The original text is kept; ask for a redraft to try again.`);
     }
-  }));
+  }
+
+  await Promise.all(groups.map((g) => pass(g.title, g.strings, "Here are the part's strings, by path. Return the ones that need adapting.")));
+
+  // A second look at strings that still use a word the glossary swaps out (e.g. "nurse"), which a long part can miss.
+  const escape = (w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const swapped = brief.glossary.map((g) => g.from.trim()).filter((w) => w.length >= 3).map((w) => new RegExp(`\\b${escape(w)}\\b`, "i"));
+  const leftover = [...leaves(doc)].filter(([, text]) => swapped.some((re) => re.test(text)));
+  const batches: Record<string, string>[] = [];
+  for (let i = 0; i < leftover.length; i += 60) batches.push(Object.fromEntries(leftover.slice(i, i + 60)));
+  await Promise.all(batches.map((b) => pass(
+    "Final check: strings that still use words the glossary swaps out",
+    b,
+    "These strings, from anywhere in the program, still use a word from the glossary. Adapt each one to the setting, unless the word is part of a research finding or source that must stay as it is.",
+  )));
 
   const summary = `${brief.setting}${brief.glossary.length ? `\n\nWords swapped: ${brief.glossary.map((g) => `${g.from} → ${g.to}`).join("; ")}.` : ""}${brief.notes ? `\n\n${brief.notes}` : ""}`;
   return { doc, summary, cost: costOf(usage), problems };
@@ -225,12 +244,12 @@ export function placeOf(path: string, base: Doc): string {
     template: "template", items: "item", focus: "Focus", clinic: "Clinic", triad: "Practice in threes", observe: "observer item", commit: "Commitment",
     header: "Page header", hero: "Welcome", h1a: "headline", h1b: "headline", h2a: "headline", h2b: "headline", measuresTitle: "Measures heading",
     sponsorName: "Sponsor name", sponsorPlaceholder: "Sponsor example", railSub: "Menu subtitle", why: "Why", watch: "What to watch for",
-    do: "to do", doc: "Documentation", when: "When", n: "Stage", input: "input",
+    do: "to do", doc: "Documentation", when: "When", n: "Stage", input: "input", skills: "skill",
   };
   const TOP: Record<string, string> = {
     program: "Program intro", passages: "Reading passage", measures: "Lead measures", pathway: "Performance pathway", escalate: "When to escalate",
     selfSkills: "Self-assessment item", pulseQ: "Team pulse question", pulseOpen: "Team pulse open question", tools: "Toolkit",
-    docTool: "Toolkit: documentation builder", sponsor: "Sponsor guide",
+    docTool: "Toolkit: documentation builder", sponsor: "Sponsor guide", modes: "Practice partner difficulty",
   };
   const rest = (parts: string[]) => parts.map((x) => (/^\d+$/.test(x) ? String(Number(x) + 1) : WORDS[x] ?? x)).join(" ");
   if (p[0] === "content" && p[1] === "modules") {
