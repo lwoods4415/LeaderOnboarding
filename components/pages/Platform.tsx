@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { costOf } from "@/lib/dashboard";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useProfile } from "../Account";
+import { PlatformRequests } from "./PlatformRequests";
 
 type Org = { id: string; name: string; slug: string; kind: string; status: string; created_at: string };
 type OrgProgram = { id: string; org_id: string; program: string; status: string; approved_at: string | null };
@@ -97,6 +98,7 @@ export function Platform() {
               </tbody>
             </table></div>
           </section>
+          <PlatformRequests />
         </>
       )}
     </>

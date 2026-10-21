@@ -184,6 +184,17 @@ describe("the super admin", () => {
   });
 });
 
+describe("intake requests", () => {
+  test("are server only: no one signed in (not even the super admin) or signed out can read or add them", async () => {
+    const anon = createClient(URL, PUBLISHABLE, opts);
+    for (const db of [anon, people.super.db, people.adminA.db, people.leaderA1.db]) {
+      const r = await db.from("intake_requests").select("*");
+      assert.ok(r.error || r.data.length === 0, "intake_requests should be denied");
+      assert.ok((await db.from("intake_requests").insert({ kind: "company", answers: {} })).error, "insert should be denied");
+    }
+  });
+});
+
 describe("sharing", () => {
   test("stop sharing deletes the shared copy, and the org admin no longer sees it", async () => {
     const { leaderA2, adminA } = people;
@@ -208,7 +219,7 @@ describe("signed-out visitors", () => {
   test("can't read anything", async () => {
     const anon = createClient(URL, PUBLISHABLE, opts);
     for (const t of ["profiles", "cohorts", "leader_private", "leader_progress", "shared_items", "custom_scenarios", "usage_log",
-      "organizations", "org_programs", "org_program_secrets", "program_templates", "program_template_secrets", "memberships", "enrollments"]) {
+      "organizations", "org_programs", "org_program_secrets", "program_templates", "program_template_secrets", "memberships", "enrollments", "intake_requests"]) {
       const r = await anon.from(t).select("*");
       assert.ok(r.error || r.data.length === 0, `${t} should be empty or denied`);
     }
