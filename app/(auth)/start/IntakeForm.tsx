@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { labelFor, MAX_ANSWER, questionsFor } from "@/lib/intake";
 import { submitIntake, type IntakeInput } from "./actions";
+import { signUpFree } from "./signup";
 
 const EMPTY: IntakeInput = { kind: "company", orgName: "", contactName: "", contactRole: "", contactEmail: "", answers: {}, website: "" };
 
@@ -38,13 +39,18 @@ export function IntakeForm() {
     );
   }
 
+  const chooser = (
+    <fieldset className="kind">
+      <legend>Who is this for?</legend>
+      <label><input type="radio" name="kind" checked={kind === "company"} onChange={() => set({ kind: "company" })} /> My company&apos;s new leaders</label>
+      <label><input type="radio" name="kind" checked={kind === "individual"} onChange={() => set({ kind: "individual" })} /> Just me, as a new leader</label>
+    </fieldset>
+  );
+  if (kind === "individual") return <FreeSignUp chooser={chooser} />;
+
   return (
     <form className="signin intake" onSubmit={send}>
-      <fieldset className="kind">
-        <legend>Who is this for?</legend>
-        <label><input type="radio" name="kind" checked={kind === "company"} onChange={() => set({ kind: "company" })} /> My company&apos;s new leaders</label>
-        <label><input type="radio" name="kind" checked={kind === "individual"} onChange={() => set({ kind: "individual" })} /> Just me, as a new leader</label>
-      </fieldset>
+      {chooser}
 
       {kind === "company" ? (
         <label htmlFor="in-org">Company name<input type="text" id="in-org" required maxLength={120} value={form.orgName} onChange={(e) => set({ orgName: e.target.value })} /></label>
@@ -78,6 +84,52 @@ export function IntakeForm() {
       <label className="hp" aria-hidden="true">Website<input type="text" tabIndex={-1} autoComplete="off" value={form.website} onChange={(e) => set({ website: e.target.value })} /></label>
 
       <div><button className="btn primary" disabled={state === "sending"}>{state === "sending" ? "Sending…" : "Send my answers"}</button></div>
+      {error ? <p className="msg-err" role="alert">{error}</p> : null}
+    </form>
+  );
+}
+
+/** An individual leader starts with the free preview straight away. */
+function FreeSignUp({ chooser }: { chooser: React.ReactNode }) {
+  const [form, setForm] = useState({ name: "", email: "", industry: "", hardest: "", website: "" });
+  const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
+  const [error, setError] = useState("");
+  const set = (patch: Partial<typeof form>) => setForm({ ...form, ...patch });
+
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    setState("sending");
+    setError("");
+    try {
+      const r = await signUpFree(form);
+      if (r.ok) setState("sent");
+      else { setError(r.message); setState("idle"); }
+    } catch {
+      setError("Something went wrong. Check your connection and try again.");
+      setState("idle");
+    }
+  }
+
+  if (state === "sent") {
+    return (
+      <div className="checkin">
+        <h3>Check your email</h3>
+        <p>We&apos;ve sent a sign-in link to <b>{form.email.trim()}</b>. It can take a minute, so check your spam folder too. The link works once and expires after an hour. Lost it? <a href="/signin">Get a new one</a>.</p>
+      </div>
+    );
+  }
+  return (
+    <form className="signin intake" onSubmit={send}>
+      {chooser}
+      <p className="note">Start free: Week 0, the self-assessment and one practice conversation with the AI partner. No card needed. Upgrade any time for the full program.</p>
+      <label htmlFor="su-name">Your name<input type="text" id="su-name" required maxLength={120} autoComplete="name" value={form.name} onChange={(e) => set({ name: e.target.value })} /></label>
+      <label htmlFor="su-email">Your email<input type="email" id="su-email" required maxLength={254} autoComplete="email" value={form.email} onChange={(e) => set({ email: e.target.value })} /></label>
+      <label htmlFor="su-industry"><span>What industry are you in, and what does your team do? <span className="req">(optional)</span></span>
+        <textarea id="su-industry" maxLength={MAX_ANSWER} value={form.industry} onChange={(e) => set({ industry: e.target.value })} placeholder="e.g. A retail store team; a software support team" /></label>
+      <label htmlFor="su-hardest"><span>What&apos;s hardest for you as a new leader? <span className="req">(optional)</span></span>
+        <textarea id="su-hardest" maxLength={MAX_ANSWER} value={form.hardest} onChange={(e) => set({ hardest: e.target.value })} placeholder="e.g. Leading friends who used to be my peers" /></label>
+      <label className="hp" aria-hidden="true">Website<input type="text" tabIndex={-1} autoComplete="off" value={form.website} onChange={(e) => set({ website: e.target.value })} /></label>
+      <div><button className="btn primary" disabled={state === "sending"}>{state === "sending" ? "Setting up…" : "Start free"}</button></div>
       {error ? <p className="msg-err" role="alert">{error}</p> : null}
     </form>
   );

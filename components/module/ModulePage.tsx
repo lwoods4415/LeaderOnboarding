@@ -11,6 +11,7 @@ import { CheckRow } from "../ui";
 import { useOpenRoleplay } from "../useOpenRoleplay";
 import { ShareBar } from "./ShareBar";
 import { Scenario } from "./Scenario";
+import { LockedCard } from "../LockedCard";
 
 export function ModulePage({ id }: { id: string }) {
   const s = useLeader();
@@ -23,6 +24,18 @@ export function ModulePage({ id }: { id: string }) {
   const prev = MODULES[i - 1], next = MODULES[i + 1];
   // Set here rather than in generateMetadata, which would block prefetching on URL data.
   useEffect(() => { document.title = `${m.weeks}: ${m.short} · ${PROGRAM_NAME}`; }, [m]);
+  if (m.locked) {
+    return (
+      <>
+        <div className="mhead">
+          <div className="eyebrow" {...raw(`${m.weeks} · ${m.eyebrow}`)} />
+          <h2 {...raw(m.title)} />
+          <div className="sub" {...raw(m.sub)} />
+        </div>
+        <LockedCard what="This module is part of the full program." />
+      </>
+    );
+  }
   return (
     <>
       <div className="mhead">

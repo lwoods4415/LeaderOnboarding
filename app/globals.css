@@ -371,3 +371,15 @@ a.btn.primary{color:var(--bg)}
 .review-answers dd{margin:2px 0 0;white-space:pre-wrap}
 .req-list button.linkbtn{text-align:left}
 @media (max-width:620px){ .review-change .pair{grid-template-columns:1fr} }
+/* Plans (/upgrade) and locked content */
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.plan{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.plan.featured{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue)}
+.plan h3{margin:0}
+.plan .price{font-family:var(--f-display);font-size:1.8rem;font-weight:700}
+.plan .price small{font-size:.8rem;font-weight:400;color:var(--muted)}
+.plan ul{flex:1}
+.plan .btn{align-self:flex-start}
+.locked-card{border:1px dashed var(--line);border-radius:14px;padding:20px 22px;background:var(--surface);max-width:60ch}
+.locked-card h3{margin-top:0}
+.rp-picker .rp-upsell{flex:0 0 auto;border:1px dashed var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;text-decoration:none;color:inherit;display:flex;flex-direction:column}

@@ -98,9 +98,41 @@ export function Platform() {
               </tbody>
             </table></div>
           </section>
+          <Purchases />
           <PlatformRequests />
         </>
       )}
     </>
+  );
+}
+
+type Payment = { id: string; email: string | null; plan: string; amount_cents: number; launch_price: boolean; created_at: string };
+
+/** Individual purchases, newest first. Cohort buyers need inviting to the next Leader Labs. */
+function Purchases() {
+  const [rows, setRows] = useState<Payment[] | null>(null);
+  useEffect(() => {
+    supabaseBrowser().from("payments").select("id, email, plan, amount_cents, launch_price, created_at").order("created_at", { ascending: false }).limit(100)
+      .then((r: { data: unknown }) => setRows((r.data ?? []) as Payment[]));
+  }, []);
+  if (!rows) return null;
+  const total = rows.reduce((a, r) => a + r.amount_cents, 0);
+  return (
+    <section className="blk"><h3>Purchases</h3>
+      <p className="lede">{rows.length ? `${rows.length} purchase${rows.length === 1 ? "" : "s"}, $${(total / 100).toFixed(2)} in total (before Stripe fees). Invite Cohort buyers to the next Leader Labs; refunds are made in Stripe.` : "No purchases yet."}</p>
+      {rows.length ? (
+        <div className="hm-wrap"><table className="hm">
+          <thead><tr><th>Date</th><th>Email</th><th>Plan</th><th>Paid</th></tr></thead>
+          <tbody>{rows.map((r) => (
+            <tr key={r.id}>
+              <td>{new Date(r.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</td>
+              <th>{r.email ?? "–"}</th>
+              <td>{r.plan.charAt(0).toUpperCase() + r.plan.slice(1)}{r.launch_price ? " (launch price)" : ""}</td>
+              <td>${(r.amount_cents / 100).toFixed(2)}</td>
+            </tr>
+          ))}</tbody>
+        </table></div>
+      ) : null}
+    </section>
   );
 }

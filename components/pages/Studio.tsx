@@ -11,6 +11,11 @@ import { CUSTOM_PREFIX, customMode, isCustomId, STANDARD_SKILLS, type CustomScen
 import { deleteScenario, useCustomScenarios } from "@/lib/customScenarios";
 import { ScenarioForm } from "./ScenarioForm";
 import { update, useLeader } from "@/lib/store";
+import Link from "next/link";
+import { myPracticeLeft } from "@/app/(app)/studio/actions";
+import { customOpen, moduleOpen, practiceLimit } from "@/lib/plans";
+import { useProfile } from "../Account";
+import { LockedCard } from "../LockedCard";
 
 const NOTE = "Practice only. Never type real patient names or details. Your program leader sees your scores and feedback, not the conversation, unless you share it.";
 const MAX_CHARS = 2000;
@@ -55,6 +60,19 @@ export function Studio() {
   const logRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const leaderTurns = st.turns.filter((t) => t.role === "leader").length;
+  const profile = useProfile();
+  const plan = profile?.plan ?? "company";
+  const limit = practiceLimit(plan);
+  const [left, setLeft] = useState<number | null>(null);
+  const eid = profile?.enrollmentId;
+  // Scored conversations left on the plan, checked again after each piece of feedback.
+  useEffect(() => {
+    if (limit === null || !eid || busy) return;
+    let live = true;
+    myPracticeLeft(eid).then((n) => { if (live) setLeft(n); }, () => {});
+    return () => { live = false; };
+  }, [limit, eid, busy, st.fb]);
+  const convLocked = !conv.custom && !moduleOpen(plan, ROLEPLAYS.find((r) => r.id === conv.id)?.mod ?? "");
 
   // Keep the newest message in view, as the reference page does.
   useEffect(() => {
@@ -158,7 +176,7 @@ export function Studio() {
           const a = rpAvg(s.rp[r.id]?.fb);
           return (
             <button key={r.id} role="tab" aria-selected={!editing && r.id === conv.id} onClick={() => select(r.id)}>
-              <b {...raw(r.title)} /><small {...raw((MODULES.find((x) => x.id === r.mod)?.short ?? "") + (a != null ? " · " + a + "/3" : ""))} />
+              <b {...raw(r.title)} /><small {...raw((MODULES.find((x) => x.id === r.mod)?.short ?? "") + (!moduleOpen(plan, r.mod) ? " · Locked" : a != null ? " · " + a + "/3" : ""))} />
             </button>
           );
         })}
@@ -170,17 +188,27 @@ export function Studio() {
             </button>
           );
         })}
-        <button role="tab" aria-selected={editing === "new"} disabled={!!busy} onClick={() => setEditing("new")}>
-          <b>+ Create your own</b><small>Practice a real situation</small>
-        </button>
+        {customOpen(plan) ? (
+          <button role="tab" aria-selected={editing === "new"} disabled={!!busy} onClick={() => setEditing("new")}>
+            <b>+ Create your own</b><small>Practice a real situation</small>
+          </button>
+        ) : (
+          <Link href="/upgrade" className="rp-upsell"><b>+ Create your own</b><small>Complete plan · Upgrade</small></Link>
+        )}
       </div>
+      {limit !== null && left !== null ? (
+        <p className="note" style={{ marginBottom: 12 }}>
+          {left > 0 ? `${left} of ${limit} scored practice conversation${limit === 1 ? "" : "s"} left on your plan.` : "You've used the practice conversations in your plan."}{" "}
+          <Link href="/upgrade">{left > 0 ? "Get more" : "Upgrade to keep practicing"}</Link>
+        </p>
+      ) : null}
       {editing ? (
         <ScenarioForm
           initial={editing === "new" ? undefined : editing}
           onCancel={() => setEditing(null)}
           onSaved={(c) => { setEditing(null); select(CUSTOM_PREFIX + c.id); }}
         />
-      ) : waitingForCustom ? <p className="note">Loading your scenario…</p> : (
+      ) : waitingForCustom ? <p className="note">Loading your scenario…</p> : convLocked ? <LockedCard what="This conversation is part of the full program." /> : (
       <div className="studio">
         <div className="brief">
           <span className="eyebrow">{conv.label} · {conv.who}, {conv.role}</span>

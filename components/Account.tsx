@@ -7,9 +7,10 @@ import type { ProgramContent } from "@/content/program";
 import { makeProgram, ProgramProvider, type Program } from "@/lib/program";
 import { forgetDevice } from "@/lib/store";
 import { flushNow, startSync, stopSync, useSaveStatus } from "@/lib/sync";
+import type { Plan } from "@/lib/plans";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
-export type Plan = "free" | "essentials" | "complete" | "cohort" | "company";
+export type { Plan } from "@/lib/plans";
 
 export type Profile = {
   id: string;
@@ -23,7 +24,9 @@ export type Profile = {
   orgRole: "org_admin" | "leader";
   enrollmentId: string;
   orgProgramId: string;
+  /** The plan that applies now (paid individual access falls back to the free preview after 12 months). */
   plan: Plan;
+  expiresAt: string | null;
   cohort: string | null;
 };
 
@@ -38,7 +41,7 @@ type Phase =
   | { kind: "error" };
 
 type Membership = { org_id: string; role: "org_admin" | "leader"; active: boolean; organizations: { name: string; status: string } | null };
-type Enrollment = { id: string; org_id: string; org_program_id: string; plan: Plan; status: string; cohorts: { name: string } | null };
+type Enrollment = { id: string; org_id: string; org_program_id: string; plan: Plan; expires_at: string | null; status: string; cohorts: { name: string } | null };
 
 export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [phase, setPhase] = useState<Phase>({ kind: "loading" });
@@ -54,7 +57,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       const [profile, memberships, enrollments] = await Promise.all([
         db.from("profiles").select("id, email, name, active, is_super_admin").eq("id", me).maybeSingle(),
         db.from("memberships").select("org_id, role, active, organizations(name, status)").eq("user_id", me),
-        db.from("enrollments").select("id, org_id, org_program_id, plan, status, cohorts(name)").eq("user_id", me).eq("status", "active"),
+        db.from("enrollments").select("id, org_id, org_program_id, plan, expires_at, status, cohorts(name)").eq("user_id", me).eq("status", "active"),
       ]);
       if (cancelled) return;
       if (profile.error || memberships.error || enrollments.error) { setPhase({ kind: "error" }); return; }
@@ -67,10 +70,12 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       if (!enrollment) { setPhase(activeOrgs.size || !p.is_super_admin ? { kind: "blocked" } : { kind: "no-program", isSuperAdmin: true }); return; }
       const membership = activeOrgs.get(enrollment.org_id)!;
 
-      const op = await db.from("org_programs").select("content").eq("id", enrollment.org_program_id).maybeSingle();
+      // The program text comes from the server, trimmed to what their plan includes.
+      const res = await fetch(`/api/program?enrollment=${enrollment.id}`, { cache: "no-store" }).catch(() => null);
+      const body = res?.ok ? ((await res.json()) as { plan: Plan; content: ProgramContent }) : null;
       if (cancelled) return;
-      if (op.error || !op.data) { setPhase({ kind: "error" }); return; }
-      const content = op.data.content as ProgramContent;
+      if (!body) { setPhase({ kind: "error" }); return; }
+      const content = body.content;
 
       setPhase({
         kind: "ready",
@@ -78,7 +83,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
         profile: {
           id: p.id, email: p.email, name: p.name, active: p.active, isSuperAdmin: p.is_super_admin,
           orgId: enrollment.org_id, orgName: membership.organizations?.name ?? "", orgRole: membership.role,
-          enrollmentId: enrollment.id, orgProgramId: enrollment.org_program_id, plan: enrollment.plan, cohort: enrollment.cohorts?.name ?? null,
+          enrollmentId: enrollment.id, orgProgramId: enrollment.org_program_id, plan: body.plan, expiresAt: enrollment.expires_at, cohort: enrollment.cohorts?.name ?? null,
         },
       });
       void startSync(p.id, enrollment.id, content);

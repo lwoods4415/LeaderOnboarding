@@ -2,7 +2,7 @@
 // Same rubric prompt and JSON shape as the reference page's rpFeedback(), checked here:
 // scores kept to 1-3, exactly one score per skill, and one retry if the reply doesn't fit.
 import Anthropic from "@anthropic-ai/sdk";
-import { anthropic, CONFIG, currentLeader, explain, fail, logUsage, parseRequest, underDailyLimit, type PracticeRequest } from "@/lib/practice";
+import { anthropic, CONFIG, currentLeader, explain, fail, logUsage, OUT_OF_PRACTICE, parseRequest, practiceLeft, underDailyLimit, type PracticeRequest } from "@/lib/practice";
 
 const SCHEMA = {
   type: "object",
@@ -79,7 +79,8 @@ export async function POST(request: Request) {
 
   const parsed = await parseRequest(await request.json().catch(() => null), userId);
   if (typeof parsed === "string") return fail(400, parsed);
-  const { who, skills, turns, feedbackPrompt, orgId, enrollmentId }: PracticeRequest = parsed;
+  const { who, skills, turns, feedbackPrompt, orgId, enrollmentId, plan }: PracticeRequest = parsed;
+  if ((await practiceLeft(enrollmentId, plan)) === 0) return fail(402, OUT_OF_PRACTICE);
   if (turns.filter((t) => t.role === "leader").length < 2) return fail(400, "Send at least two messages before asking for feedback.");
 
   if (!(await underDailyLimit(userId, "feedback"))) {

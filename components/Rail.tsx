@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { isIndividual, PLAN_NAMES } from "@/lib/plans";
 import { useProgram } from "@/lib/program";
 import { modProgress, overall } from "@/lib/progress";
 import { useLeader } from "@/lib/store";
@@ -42,9 +43,10 @@ export function Rail() {
       {isOrgAdmin ? <Item href="/dashboard" t="Cohort dashboard" w="Only visible to you" current={at("/dashboard")} /> : null}
       {isOrgAdmin ? <Item href="/admin" t="Leaders and cohorts" w="Invites and access" current={at("/admin")} /> : null}
       {profile?.isSuperAdmin ? <Item href="/platform" t="Platform" w="All organizations" current={at("/platform")} /> : null}
+      {profile && isIndividual(profile.plan) ? <Item href="/upgrade" t="Your plan" w={profile.plan === "free" ? "Free preview · Upgrade" : PLAN_NAMES[profile.plan]} current={at("/upgrade")} /> : null}
       <div className="grp">Modules</div>
       {program.modules.map((m) => (
-        <Item key={m.id} href={`/module/${m.id}`} t={m.short} w={m.weeks} pct={modProgress(s, m, program).pct} current={at(`/module/${m.id}`)} />
+        <Item key={m.id} href={`/module/${m.id}`} t={m.short} w={m.locked ? `${m.weeks} · Locked` : m.weeks} pct={m.locked ? undefined : modProgress(s, m, program).pct} current={at(`/module/${m.id}`)} />
       ))}
       <div className="grp">Practice</div>
       <Item href="/studio" t="Practice studio" w={`${rpDone} of ${program.roleplays.length} conversations`} current={at("/studio")} />

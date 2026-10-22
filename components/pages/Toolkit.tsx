@@ -4,11 +4,23 @@ import { Braving } from "@/components/Braving";
 import { Planner } from "@/components/Planner";
 import { useProgram } from "@/lib/program";
 import { raw } from "@/lib/html";
+import { toolkitOpen } from "@/lib/plans";
+import { useProfile } from "../Account";
+import { LockedCard } from "../LockedCard";
 
 
 
 export function Toolkit() {
   const { books: BOOKS, tools: TOOLS } = useProgram();
+  const profile = useProfile();
+  if (profile && !toolkitOpen(profile.plan)) {
+    return (
+      <>
+        <div className="mhead"><div className="eyebrow">Resources</div><h2>The <em>toolkit</em></h2><div className="sub">Planners, guides and templates for real conversations.</div></div>
+        <LockedCard what="The toolkit is part of the full program." />
+      </>
+    );
+  }
   return (
     <>
       <div className="mhead"><div className="eyebrow">Resources</div><h2>The <em>toolkit</em></h2><div className="sub">Use these alongside the modules, and keep using them after.</div></div>

@@ -13,7 +13,7 @@ const STATUS: Record<RequestSummary["status"], string> = {
   new: "New", drafting: "Drafting…", draft_ready: "Ready for your review", draft_failed: "Draft failed",
   approved: "Approved", declined: "Closed",
 };
-const KIND: Record<RequestSummary["kind"], string> = { company: "Company", individual: "Individual", template: "Standard version" };
+const KIND: Record<RequestSummary["kind"], string> = { company: "Company", individual: "Free sign-up", template: "Standard version" };
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 export function PlatformRequests() {
@@ -115,7 +115,7 @@ function Detail({ d, busy, notes, setNotes, run, close }: {
 
       {d.status === "drafting" ? <p className="checkin" style={{ marginTop: 16 }}>Claude is writing the draft. This takes a minute or two, and this page checks back every 10 seconds.</p> : null}
       {d.status === "draft_failed" ? <p className="msg-err" style={{ marginTop: 16 }}>The draft failed: {d.problems}</p> : null}
-      {d.kind === "individual" ? <p className="note" style={{ marginTop: 16 }}>Individuals use the general version, so there&apos;s no draft. Close the request once you&apos;ve followed up.</p> : null}
+      {d.kind === "individual" ? <p className="note" style={{ marginTop: 16 }}>This person signed up for the free preview of the general version, so there&apos;s no draft. Close it once you&apos;ve read it.</p> : null}
       {open && d.kind !== "individual" && (d.status === "new" || (d.status === "draft_failed" && !d.changes.length)) ? (
         <p style={{ marginTop: 12 }}><button className="btn primary" disabled={busy} onClick={() => run(() => draftRequest(d.id))}>Draft the tailored program</button></p>
       ) : null}

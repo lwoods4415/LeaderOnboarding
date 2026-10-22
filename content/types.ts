@@ -28,6 +28,8 @@ export type Module = {
   lab: Lab;
   measures?: boolean;
   note?: string;
+  /** Set when the leader's plan doesn't include this module: titles only, no text. */
+  locked?: boolean;
 };
 
 export type Measure = { id: string; t: string };

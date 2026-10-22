@@ -6,6 +6,7 @@ import type { Difficulty, RoleplaySecret } from "@/content";
 import { CUSTOM_PREFIX, isCustomId, STANDARD_SKILLS } from "@/content/custom-practice";
 import { customFeedbackPrompt, customRolePrompt, feedbackPrompt, rolePrompt } from "@/content/leading-people/prompts";
 import type { ProgramContent } from "@/content/program";
+import { customOpen, effectivePlan, moduleOpen, practiceLimit, PLAN_NAMES, type Plan } from "./plans";
 import { supabaseAdmin } from "./supabase/admin";
 import { supabaseServer } from "./supabase/server";
 
@@ -26,6 +27,7 @@ export type Turn = { role: "leader" | "them"; text: string };
 export type PracticeRequest = {
   orgId: string;
   enrollmentId: string;
+  plan: Plan;
   who: string;
   skills: string[];
   mode: Difficulty;
@@ -59,18 +61,21 @@ export async function parseRequest(body: unknown, userId: string): Promise<Pract
   if (typeof b?.roleplayId !== "string" || typeof b.enrollmentId !== "string") return NOT_FOUND;
   const supabase = await supabaseServer();
 
-  const { data: e } = await supabase.from("enrollments").select("id, org_id, org_program_id").eq("id", b.enrollmentId).eq("user_id", userId).eq("status", "active").maybeSingle();
+  const { data: e } = await supabase.from("enrollments").select("id, org_id, org_program_id, plan, expires_at").eq("id", b.enrollmentId).eq("user_id", userId).eq("status", "active").maybeSingle();
   const { data: active } = await supabase.rpc("owns_active_enrollment", { eid: b.enrollmentId });
   if (!e || !active) return "Your access to this program isn't active. Refresh the page, or contact your program leader.";
-  const { data: op } = await supabase.from("org_programs").select("content").eq("id", e.org_program_id).maybeSingle();
+  // Program text is server only (the browser gets it trimmed to the plan), so it's read with the secret key.
+  const { data: op } = await supabaseAdmin().from("org_programs").select("content").eq("id", e.org_program_id).maybeSingle();
   if (!op) return NOT_FOUND;
   const program = op.content as ProgramContent;
+  const plan = effectivePlan(e.plan as Plan, e.expires_at);
 
   if (typeof b.difficulty !== "string" || !(b.difficulty in program.modes)) return "Choose a difficulty and try again.";
   const mode = b.difficulty as Difficulty;
 
-  let character: Omit<PracticeRequest, "mode" | "turns" | "orgId" | "enrollmentId">;
+  let character: Omit<PracticeRequest, "mode" | "turns" | "orgId" | "enrollmentId" | "plan">;
   if (isCustomId(b.roleplayId)) {
+    if (!customOpen(plan)) return `Practicing your own scenarios is part of the Complete plan. You're on ${PLAN_NAMES[plan]}.`;
     const { data: c } = await supabase
       .from("custom_scenarios")
       .select("who, role, situation, goal, reactions, hidden")
@@ -85,6 +90,7 @@ export async function parseRequest(body: unknown, userId: string): Promise<Pract
     };
   } else {
     const base = program.roleplays.find((r) => r.id === b.roleplayId);
+    if (base && !moduleOpen(plan, base.mod)) return "This conversation is part of a module your plan doesn't include yet. Upgrade to practice it.";
     // Backstories live in a table only the server can read.
     const { data: s } = await supabaseAdmin().from("org_program_secrets").select("secrets").eq("org_program_id", e.org_program_id).maybeSingle();
     const secret = base && (s?.secrets as { roleplays?: Record<string, RoleplaySecret> } | undefined)?.roleplays?.[base.id];
@@ -106,7 +112,7 @@ export async function parseRequest(body: unknown, userId: string): Promise<Pract
   if (turns.filter((t) => t.role === "leader").length > CONFIG.maxLeaderTurns) {
     return `A conversation can have up to ${CONFIG.maxLeaderTurns} of your messages. Select "End and get feedback", or "Start over".`;
   }
-  return { ...character, orgId: e.org_id, enrollmentId: e.id, mode, turns };
+  return { ...character, orgId: e.org_id, enrollmentId: e.id, plan, mode, turns };
 }
 
 /** Conversation text only, as Claude messages. Starts with the leader, like the reference page. */
@@ -114,6 +120,24 @@ export function toMessages(turns: Turn[]): Anthropic.MessageParam[] {
   const start = turns.findIndex((t) => t.role === "leader");
   return start < 0 ? [] : turns.slice(start).map((t) => ({ role: t.role === "leader" ? "user" : "assistant", content: t.text }));
 }
+
+/**
+ * Scored practice conversations left on this plan, or null for unlimited. A conversation counts once
+ * feedback has been given on it.
+ */
+export async function practiceLeft(enrollmentId: string, plan: Plan): Promise<number | null> {
+  const limit = practiceLimit(plan);
+  if (limit === null) return null;
+  const { count, error } = await supabaseAdmin()
+    .from("usage_log")
+    .select("id", { count: "exact", head: true })
+    .eq("enrollment_id", enrollmentId)
+    .eq("route", "feedback");
+  if (error) throw error;
+  return Math.max(0, limit - (count ?? 0));
+}
+
+export const OUT_OF_PRACTICE = "You've used the practice conversations in your plan. Upgrade to keep practicing.";
 
 /** True when the leader still has calls left today (UTC) for this route. */
 export async function underDailyLimit(userId: string, route: "message" | "feedback") {

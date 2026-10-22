@@ -184,6 +184,43 @@ describe("the super admin", () => {
   });
 });
 
+describe("plans and payments", () => {
+  test("program text can't be read from the database directly (the server trims it to the plan)", async () => {
+    for (const db of [people.leaderA1.db, people.adminA.db, people.super.db]) {
+      assert.ok((await db.from("org_programs").select("content")).error, "org_programs.content should be denied");
+      assert.ok((await db.from("program_templates").select("content")).error, "program_templates.content should be denied");
+    }
+    assert.ok(rows(await people.leaderA1.db.from("org_programs").select("id, status")).length > 0, "other columns stay readable");
+  });
+
+  test("leaders see only their own payments and can't record one", async () => {
+    const { leaderA1, leaderA2 } = people;
+    const sid = "cs_test_rls_" + Date.now();
+    must(await service.from("payments").insert({ user_id: leaderA2.id, enrollment_id: leaderA2.enrollment, plan: "essentials", amount_cents: 4900, stripe_session_id: sid }));
+    try {
+      assert.deepEqual(rows(await leaderA1.db.from("payments").select("id")), []);
+      assert.equal(rows(await leaderA2.db.from("payments").select("id")).length, 1);
+      assert.ok(rows(await people.super.db.from("payments").select("id")).length >= 1);
+      assert.ok((await leaderA1.db.from("payments").insert({ user_id: leaderA1.id, plan: "cohort", amount_cents: 1, stripe_session_id: sid + "x" })).error);
+    } finally {
+      await service.from("payments").delete().eq("stripe_session_id", sid);
+    }
+  });
+
+  test("“Create your own” scenarios need the Complete plan or above", async () => {
+    const { leaderA2 } = people;
+    const row = { user_id: leaderA2.id, enrollment_id: leaderA2.enrollment, title: "Plan test", who: "Sam", role: "agent", situation: "s", goal: "g" };
+    await service.from("enrollments").update({ plan: "essentials" }).eq("id", leaderA2.enrollment);
+    try {
+      assert.ok((await leaderA2.db.from("custom_scenarios").insert(row)).error, "essentials can't create scenarios");
+      await service.from("enrollments").update({ plan: "complete", expires_at: new Date(Date.now() - 864e5).toISOString() }).eq("id", leaderA2.enrollment);
+      assert.ok((await leaderA2.db.from("custom_scenarios").insert(row)).error, "expired complete can't create scenarios");
+    } finally {
+      await service.from("enrollments").update({ plan: "company", expires_at: null }).eq("id", leaderA2.enrollment);
+    }
+  });
+});
+
 describe("intake requests", () => {
   test("are server only: no one signed in (not even the super admin) or signed out can read or add them", async () => {
     const anon = createClient(URL, PUBLISHABLE, opts);
@@ -219,7 +256,7 @@ describe("signed-out visitors", () => {
   test("can't read anything", async () => {
     const anon = createClient(URL, PUBLISHABLE, opts);
     for (const t of ["profiles", "cohorts", "leader_private", "leader_progress", "shared_items", "custom_scenarios", "usage_log",
-      "organizations", "org_programs", "org_program_secrets", "program_templates", "program_template_secrets", "memberships", "enrollments", "intake_requests"]) {
+      "organizations", "org_programs", "org_program_secrets", "program_templates", "program_template_secrets", "memberships", "enrollments", "intake_requests", "payments"]) {
       const r = await anon.from(t).select("*");
       assert.ok(r.error || r.data.length === 0, `${t} should be empty or denied`);
     }
