@@ -2,6 +2,7 @@
 // Upgrading an individual plan with Stripe Checkout. Every action checks, as the caller, that the
 // enrollment is their own, and prices are always worked out here, never taken from the browser.
 import { headers } from "next/headers";
+import Stripe from "stripe";
 import { fulfill, launchSeatsLeft, quotes, stripe, type Enrollment, type Quote } from "@/lib/billing";
 import { effectivePlan, PLAN_NAMES, type PaidPlan, type Plan } from "@/lib/plans";
 import { supabaseAdmin } from "@/lib/supabase/admin";
@@ -27,6 +28,17 @@ export async function getOffer(enrollmentId: string): Promise<Offer> {
 }
 
 export async function startCheckout(enrollmentId: string, plan: PaidPlan): Promise<{ url?: string; message?: string }> {
+  try {
+    return await openCheckout(enrollmentId, plan);
+  } catch (err) {
+    // Logged in full on the server; the leader sees a short code we can look up.
+    console.error("checkout failed", err);
+    const code = err instanceof Stripe.errors.StripeError ? err.type : err instanceof Error && err.message.includes("STRIPE_SECRET_KEY") ? "no-key" : "error";
+    return { message: `Couldn't start checkout (code: ${code}). Try again, or contact us.` };
+  }
+}
+
+async function openCheckout(enrollmentId: string, plan: PaidPlan): Promise<{ url?: string; message?: string }> {
   const { user, e } = await myEnrollment(enrollmentId);
   if (e.status !== "active") return { message: "Your access isn't active. Contact us for help." };
   const quote = (await quotes(supabaseAdmin(), e)).find((q) => q.plan === plan);
