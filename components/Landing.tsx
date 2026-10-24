@@ -48,7 +48,7 @@ export function Landing() {
 
       <header className="land-hero">
         <div className="eyebrow">For first-time leaders</div>
-        <h1>A promotion is a new job. <span>Onboard it like one.</span></h1>
+        <h1>A promotion is a new job. <span>We onboard it like one.</span></h1>
         <p className="land-lede">A 12-week program for people leading a team for the first time. Learn what changes when you go from doing the work to leading the people who do it, and practice the hard conversations with an AI partner before you have them for real.</p>
         <div className="row land-cta">
           <Link className="btn primary" href="/start/free">Start free</Link>
