@@ -57,7 +57,7 @@ export function SignInForm() {
 }
 
 /** Sign in with the code from the email instead of the link (handy when the link opens on another device). */
-function CodeForm({ email }: { email: string }) {
+export function CodeForm({ email }: { email: string }) {
   const router = useRouter();
   const [code, setCode] = useState("");
   const [state, setState] = useState<"idle" | "busy" | "failed">("idle");

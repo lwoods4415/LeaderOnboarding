@@ -67,8 +67,11 @@ export async function fulfill(sessionId: string): Promise<PaidPlan | null> {
   if (!e || e.user_id !== userId) return null;
   const current = effectivePlan(e.plan as Plan, e.expires_at);
   if (rank(plan) < rank(current)) return plan; // already on a higher plan
-  // Twelve months from this purchase, never shorter than what they already have.
-  const until = new Date(Math.max(Date.now() + ACCESS_DAYS * 864e5, current === "free" ? 0 : new Date(e.expires_at ?? 0).getTime()));
+  // Twelve months from the day this payment was recorded (so confirming it again changes nothing),
+  // never shorter than what they already have.
+  const { data: paid } = await db.from("payments").select("created_at").eq("stripe_session_id", s.id).single();
+  const from = new Date(paid?.created_at ?? Date.now()).getTime();
+  const until = new Date(Math.max(from + ACCESS_DAYS * 864e5, current === "free" ? 0 : new Date(e.expires_at ?? 0).getTime()));
   const { error: upError } = await db.from("enrollments").update({ plan, expires_at: until.toISOString(), status: "active" }).eq("id", enrollmentId);
   if (upError) throw upError;
   return plan;

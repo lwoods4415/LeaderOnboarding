@@ -58,7 +58,7 @@ async function openCheckout(enrollmentId: string, plan: PaidPlan): Promise<{ url
     client_reference_id: user.id,
     metadata: { user_id: user.id, enrollment_id: e.id, plan, launch: quote.launch ? "1" : "0" },
     payment_intent_data: { metadata: { user_id: user.id, enrollment_id: e.id, plan } },
-    success_url: `${site}/upgrade?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${site}/purchase?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${site}/upgrade`,
   });
   return session.url ? { url: session.url } : { message: "Couldn't start checkout. Try again." };
