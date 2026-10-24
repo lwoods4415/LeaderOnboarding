@@ -8,6 +8,12 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase/env";
 const PUBLIC = ["/signin", "/auth/", "/api/", "/privacy", "/start", "/purchase", "/welcome"];
 
 export async function proxy(request: NextRequest) {
+  // A deployment without its Supabase settings can't check sign-ins; say which one is missing.
+  if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+    const missing = [!SUPABASE_URL && "NEXT_PUBLIC_SUPABASE_URL", !SUPABASE_PUBLISHABLE_KEY && "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"].filter(Boolean).join(" and ");
+    console.error(`Missing environment variable(s) for this deployment: ${missing}`);
+    return new NextResponse(`This deployment is missing ${missing}.`, { status: 500 });
+  }
   let response = NextResponse.next({ request });
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     cookies: {
