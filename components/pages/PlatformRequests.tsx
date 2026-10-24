@@ -3,14 +3,14 @@
 // them, and approval. Each change in a draft is shown next to the standard wording and can be undone.
 import { useCallback, useEffect, useState } from "react";
 import {
-  approveRequest, declineRequest, draftRequest, getRequest, listRequests, startGeneralVersion, undoChange,
+  activateWithoutPayment, approveRequest, declineRequest, draftRequest, resendInvite, getRequest, listRequests, startGeneralVersion, undoChange,
   type RequestDetail, type RequestSummary, type Result,
 } from "@/app/(app)/platform/actions";
 import { labelFor, questionsFor } from "@/lib/intake";
 import { raw } from "@/lib/html";
 
 const STATUS: Record<RequestSummary["status"], string> = {
-  new: "New", drafting: "Drafting…", draft_ready: "Ready for your review", draft_failed: "Draft failed",
+  new: "New", drafting: "Drafting…", draft_ready: "Ready for your review", draft_failed: "Draft failed", awaiting_payment: "Waiting for payment",
   approved: "Approved", declined: "Closed",
 };
 const KIND: Record<RequestSummary["kind"], string> = { company: "Company", individual: "Free sign-up", template: "Standard version" };
@@ -99,7 +99,7 @@ function Detail({ d, busy, notes, setNotes, run, close }: {
   const shown = d.changes.filter((c) => !filter || (c.place + c.before + c.after).toLowerCase().includes(filter.toLowerCase()));
   const confirmText = d.kind === "template"
     ? "Approve the general version? It becomes a standard version for Free and Essentials."
-    : `Approve ${d.org_name}'s program? This creates the organization, makes the program live, and emails an invite to ${d.contact_email} as its admin.`;
+    : `Approve ${d.org_name}'s program? This creates the organization and gives you a payment link to send to ${d.contact_email}. The program goes live when they pay. No email is sent yet.`;
 
   return (
     <>
@@ -145,10 +145,26 @@ function Detail({ d, busy, notes, setNotes, run, close }: {
           </label>
           <div className="row" style={{ marginTop: 10 }}>
             <button className="btn" disabled={busy || !notes.trim()} onClick={() => run(() => draftRequest(d.id, notes), () => setNotes(""))}>Redraft with my notes</button>
-            <button className="btn primary" disabled={busy} onClick={() => { if (confirm(confirmText)) void run(() => approveRequest(d.id)); }}>Approve and go live</button>
+            <button className="btn primary" disabled={busy} onClick={() => { if (confirm(confirmText)) void run(() => approveRequest(d.id)); }}>{d.kind === "template" ? "Approve" : "Approve and get payment link"}</button>
             <button className="btn ghost" disabled={busy} onClick={() => { if (confirm("Close this request without approving it?")) void run(() => declineRequest(d.id)); }}>Decline</button>
           </div>
         </div>
+      ) : d.status === "awaiting_payment" ? (
+        <div className="checkin" style={{ marginTop: 20 }}>
+          <b>Waiting for payment</b>
+          <p>Send this private link to {d.contact_name ?? "the contact"} ({d.contact_email}). They choose how many leaders, pay with Stripe, and the program goes live straight away with an admin invite. Anyone with the link can pay, so send it only to them.</p>
+          {d.payLink ? (
+            <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
+              <input type="text" readOnly value={d.payLink} onFocus={(e) => e.target.select()} style={{ flex: "1 1 320px" }} />
+              <button className="btn" onClick={() => navigator.clipboard.writeText(d.payLink!).catch(() => {})}>Copy link</button>
+            </div>
+          ) : null}
+          <p className="note" style={{ marginTop: 12 }}>Special arrangement, such as a pilot or an invoice paid another way?{" "}
+            <button className="linkbtn" disabled={busy} onClick={() => { if (confirm(`Activate ${d.org_name}'s program without payment? It goes live with no limit on leaders, and ${d.contact_email} is emailed an admin invite.`)) void run(() => activateWithoutPayment(d.id)); }}>Activate without payment</button>
+          </p>
+        </div>
+      ) : d.status === "approved" && d.kind === "company" ? (
+        <p style={{ marginTop: 16 }}><button className="btn ghost" disabled={busy} onClick={() => { if (confirm(`Email ${d.contact_email} the admin invite again?`)) void run(() => resendInvite(d.id)); }}>Resend admin invite</button></p>
       ) : open && d.status !== "drafting" ? (
         <p style={{ marginTop: 16 }}><button className="btn ghost" disabled={busy} onClick={() => { if (confirm("Close this request?")) void run(() => declineRequest(d.id)); }}>Close request</button></p>
       ) : null}

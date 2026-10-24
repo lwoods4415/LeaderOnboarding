@@ -4,6 +4,8 @@
 import { headers } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
+import { companyCheckout, companyQuote, type CompanyQuote } from "@/lib/billing";
+import { COMPANY_MAX_SEATS } from "@/lib/plans";
 
 export type Result = { ok: boolean; message: string };
 export type AdminLeader = {
@@ -16,7 +18,9 @@ export type AdminLeader = {
   lastActive: string | null;
   invitePending: boolean;
 };
-export type AdminData = { cohorts: { id: string; name: string }[]; leaders: AdminLeader[] };
+/** Leader seats: null when the organization has no limit (e.g. the pilot). */
+export type Seats = { total: number | null; used: number; paidUntil: string | null };
+export type AdminData = { cohorts: { id: string; name: string }[]; leaders: AdminLeader[]; seats: Seats };
 
 const BANNED = "876000h"; // ~100 years: how Supabase blocks sign-in until access is restored
 const PROGRAM = "leading-people";
@@ -51,11 +55,12 @@ async function isMember(admin: ReturnType<typeof supabaseAdmin>, orgId: string, 
 
 export async function loadAdminData(orgId: string): Promise<AdminData> {
   const { admin } = await requireOrgAdmin(orgId);
-  const [cohorts, members, enrollments, users] = await Promise.all([
+  const [cohorts, members, enrollments, users, org] = await Promise.all([
     admin.from("cohorts").select("id, name").eq("org_id", orgId).order("name"),
     admin.from("memberships").select("user_id, role, active").eq("org_id", orgId),
     admin.from("enrollments").select("user_id, cohort_id").eq("org_id", orgId),
     admin.auth.admin.listUsers({ perPage: 1000 }),
+    admin.from("organizations").select("seats, paid_until").eq("id", orgId).single(),
   ]);
   const signedIn = new Set((users.data?.users ?? []).filter((u) => u.last_sign_in_at).map((u) => u.id));
   const { data: profiles } = await admin.from("profiles").select("id, email, name, last_active").in("id", (members.data ?? []).map((m) => m.user_id));
@@ -63,6 +68,7 @@ export async function loadAdminData(orgId: string): Promise<AdminData> {
   const cohortOf = new Map((enrollments.data ?? []).map((e) => [e.user_id, e.cohort_id as string | null]));
   type Member = { user_id: string; role: "org_admin" | "leader"; active: boolean };
   return {
+    seats: { total: org.data?.seats ?? null, used: ((members.data ?? []) as Member[]).filter((m) => m.role === "leader").length, paidUntil: org.data?.paid_until ?? null },
     cohorts: cohorts.data ?? [],
     leaders: ((members.data ?? []) as Member[])
       .filter((m) => profileOf.has(m.user_id))
@@ -92,6 +98,13 @@ export async function inviteLeader(orgId: string, input: { name: string; email: 
   if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("Enter a name and a valid email address.");
   const programId = await liveProgram(admin, orgId);
   if (!programId) return fail("Your organization's program isn't live yet.");
+  const [{ data: org }, { count: leaders }] = await Promise.all([
+    admin.from("organizations").select("seats").eq("id", orgId).single(),
+    admin.from("memberships").select("user_id", { count: "exact", head: true }).eq("org_id", orgId).eq("role", "leader"),
+  ]);
+  if (org?.seats != null && (leaders ?? 0) >= org.seats) {
+    return fail(`You've used all ${org.seats} leader seats. Add seats below to invite more.`);
+  }
   if (input.cohortId) {
     const { data: c } = await admin.from("cohorts").select("id").eq("id", input.cohortId).eq("org_id", orgId).maybeSingle();
     if (!c) return fail("That cohort wasn't found.");
@@ -179,4 +192,34 @@ export async function createSignInLink(orgId: string, userId: string): Promise<R
   if (error || !data.properties?.hashed_token) return fail("Couldn't create a sign-in link. Try again.");
   const url = `${await siteUrl()}/auth/confirm?token_hash=${encodeURIComponent(data.properties.hashed_token)}&type=email`;
   return { ok: true, message: "Sign-in link created.", url };
+}
+
+/** The price of more leader seats (no setup fee), at the tier for the new total. */
+export async function quoteSeats(orgId: string, extra: number): Promise<CompanyQuote | null> {
+  const { admin } = await requireOrgAdmin(orgId);
+  const { data: org } = await admin.from("organizations").select("seats").eq("id", orgId).single();
+  if (org?.seats == null || !Number.isInteger(extra) || extra < 1 || org.seats + extra > COMPANY_MAX_SEATS) return null;
+  return companyQuote(extra, org.seats, false);
+}
+
+/** A Stripe Checkout page for more leader seats. They're added as soon as payment is complete. */
+export async function buySeats(orgId: string, extra: number): Promise<Result & { url?: string }> {
+  const { admin } = await requireOrgAdmin(orgId);
+  const quote = await quoteSeats(orgId, extra);
+  if (!quote) return fail(`Choose at least 1 seat, up to ${COMPANY_MAX_SEATS} leaders in total. For more, contact us.`);
+  const [{ data: org }, { data: auth }] = await Promise.all([
+    admin.from("organizations").select("name").eq("id", orgId).single(),
+    (await supabaseServer()).auth.getUser(),
+  ]);
+  try {
+    const site = await siteUrl();
+    const url = await companyCheckout({
+      kind: "seats", quote, orgName: org?.name ?? "your organization", email: auth.user?.email ?? null,
+      metadata: { org_id: orgId }, successUrl: `${site}/purchase?session_id={CHECKOUT_SESSION_ID}`, cancelUrl: `${site}/admin`,
+    });
+    return { ok: true, message: "Opening checkout…", url };
+  } catch (err) {
+    console.error("seat checkout failed", err);
+    return fail("Couldn't start checkout. Try again.");
+  }
 }

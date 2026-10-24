@@ -221,6 +221,25 @@ describe("plans and payments", () => {
   });
 });
 
+describe("company payments", () => {
+  test("only that organization's admins and the super admin see them; no one signed in can record one", async () => {
+    const sid = "cs_test_rls_org_" + Date.now();
+    must(await service.from("org_payments").insert({ org_id: orgs.a.id, kind: "initial", seats: 3, amount_cents: 109700, stripe_session_id: sid }));
+    try {
+      assert.equal(rows(await people.adminA.db.from("org_payments").select("id")).length, 1);
+      assert.deepEqual(rows(await people.adminB.db.from("org_payments").select("id")), []);
+      assert.deepEqual(rows(await people.leaderA1.db.from("org_payments").select("id")), []);
+      assert.ok(rows(await people.super.db.from("org_payments").select("id")).length >= 1);
+      assert.ok((await people.adminA.db.from("org_payments").insert({ org_id: orgs.a.id, kind: "seats", seats: 1, amount_cents: 1, stripe_session_id: sid + "x" })).error);
+      assert.ok((await people.adminA.db.from("organizations").update({ seats: 999 }).eq("id", orgs.a.id)).error || true);
+      const { data: o } = await service.from("organizations").select("seats").eq("id", orgs.a.id).single();
+      assert.notEqual(o.seats, 999, "org admins can't change their own seats");
+    } finally {
+      await service.from("org_payments").delete().eq("stripe_session_id", sid);
+    }
+  });
+});
+
 describe("intake requests", () => {
   test("are server only: no one signed in (not even the super admin) or signed out can read or add them", async () => {
     const anon = createClient(URL, PUBLISHABLE, opts);
@@ -256,7 +275,7 @@ describe("signed-out visitors", () => {
   test("can't read anything", async () => {
     const anon = createClient(URL, PUBLISHABLE, opts);
     for (const t of ["profiles", "cohorts", "leader_private", "leader_progress", "shared_items", "custom_scenarios", "usage_log",
-      "organizations", "org_programs", "org_program_secrets", "program_templates", "program_template_secrets", "memberships", "enrollments", "intake_requests", "payments"]) {
+      "organizations", "org_programs", "org_program_secrets", "program_templates", "program_template_secrets", "memberships", "enrollments", "intake_requests", "payments", "org_payments"]) {
       const r = await anon.from(t).select("*");
       assert.ok(r.error || r.data.length === 0, `${t} should be empty or denied`);
     }

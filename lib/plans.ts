@@ -73,3 +73,24 @@ export function contentFor(content: ProgramContent, plan: Plan): ProgramContent 
     tools: content.tools.map((t) => blank(t) as typeof t),
   };
 }
+
+// ---------- companies (per leader, 12 months, plus a one-time setup fee) ----------
+export const COMPANY_MIN_SEATS = 3;
+export const COMPANY_MAX_SEATS = 250; // above this, pricing is custom
+const COMPANY_TIERS = [
+  { upTo: 10, perLeader: 19900, setup: 50000 },
+  { upTo: 50, perLeader: 17900, setup: 100000 },
+  { upTo: 250, perLeader: 14900, setup: 200000 },
+];
+/** The per-leader price and setup fee for an organization of this many leaders in total. */
+export function companyTier(totalSeats: number) {
+  return COMPANY_TIERS.find((t) => totalSeats <= t.upTo) ?? COMPANY_TIERS[COMPANY_TIERS.length - 1];
+}
+export const COMPANY_TIER_TEXT = "$199 per leader for 3–10 leaders, $179 for 11–50, $149 for 51–250, plus a one-time setup fee ($500, $1,000 or $2,000).";
+
+/** A sensible starting number of leaders from the intake answer ("6–20" → 10). */
+export function seatsFromAnswer(answer: string | undefined) {
+  const m = answer?.match(/(\d+)\D+(\d+)/);
+  if (!m) return COMPANY_MIN_SEATS;
+  return Math.min(COMPANY_MAX_SEATS, Math.max(COMPANY_MIN_SEATS, Math.round((Number(m[1]) + Number(m[2])) / 2)));
+}

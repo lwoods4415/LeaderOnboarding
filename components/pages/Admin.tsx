@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { createCohort, createSignInLink, deleteLeader, inviteLeader, loadAdminData, moveLeader, setAccess, type AdminData, type Result } from "@/app/(app)/admin/actions";
+import { buySeats, createCohort, createSignInLink, deleteLeader, inviteLeader, loadAdminData, moveLeader, quoteSeats, setAccess, type AdminData, type Result, type Seats } from "@/app/(app)/admin/actions";
+import type { CompanyQuote } from "@/lib/billing";
 import { useProfile } from "../Account";
 
 const ago = (ts: string | null) => {
@@ -80,6 +81,8 @@ export function Admin() {
         </form>
       </section>
 
+      {data?.seats.total != null ? <SeatsPanel orgId={orgId} seats={data.seats} /> : null}
+
       <section className="blk"><h3>Leaders</h3>
         <p className="lede">Invite emails can be slow or land in spam. To get someone in quickly, use <b>Copy sign-in link</b> and send it to them yourself (Teams, text or your own email). No email is sent. Each link works once, for that leader only.</p>
         {link ? (
@@ -127,5 +130,44 @@ export function Admin() {
         )}
       </section>
     </>
+  );
+}
+
+const dollars = (cents: number) => `$${(cents / 100).toLocaleString()}`;
+
+/** Leader seats used and paid for, and buying more. */
+function SeatsPanel({ orgId, seats }: { orgId: string; seats: Seats }) {
+  const [extra, setExtra] = useState("5");
+  const [quote, setQuote] = useState<CompanyQuote | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let live = true;
+    const n = Number(extra);
+    (Number.isInteger(n) && n > 0 ? quoteSeats(orgId, n) : Promise.resolve(null)).then((q) => { if (live) setQuote(q); }, () => {});
+    return () => { live = false; };
+  }, [orgId, extra]);
+  const full = seats.used >= (seats.total ?? 0);
+  return (
+    <section className="blk"><h3>Leader seats</h3>
+      <p className="lede">
+        <b>{seats.used} of {seats.total}</b> seats used{full ? ". You've used them all" : ""}.
+        {seats.paidUntil ? ` Your program runs until ${new Date(seats.paidUntil).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}.` : ""}
+      </p>
+      <form className="dash-bar" onSubmit={async (e) => {
+        e.preventDefault();
+        if (!quote) return;
+        setBusy(true); setError("");
+        const r = await buySeats(orgId, quote.seats).catch(() => ({ ok: false, message: "Couldn't start checkout. Try again." }) as Result & { url?: string });
+        if (r.url) { window.location.assign(r.url); return; }
+        setError(r.message); setBusy(false);
+      }}>
+        <label htmlFor="more-seats">Add seats <input type="text" inputMode="numeric" id="more-seats" value={extra} onChange={(e) => setExtra(e.target.value.replace(/D/g, ""))} style={{ width: 80 }} /></label>
+        <span>{quote ? `${quote.seats} × ${dollars(quote.perLeader)} = ${dollars(quote.total)}` : "–"}</span>
+        <button className="btn" disabled={!quote || busy}>{busy ? "Opening checkout…" : "Buy seats"}</button>
+      </form>
+      {error ? <p className="msg-err">{error}</p> : null}
+      <p className="note">Each seat gives one leader access. Seats you add now run to the same end date.</p>
+    </section>
   );
 }

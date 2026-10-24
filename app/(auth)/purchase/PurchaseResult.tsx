@@ -35,6 +35,35 @@ export function PurchaseResult() {
     );
   }
 
+  if (result.kind === "initial") {
+    return (
+      <section className="blk">
+        <div className="checkin">
+          <h3>Thank you! {result.orgName}&apos;s program is live</h3>
+          <p>You have <b>{result.seats} leader seat{result.seats === 1 ? "" : "s"}</b> for the next 12 months. Stripe will email your receipt.</p>
+        </div>
+        <p style={{ marginTop: 18 }}>
+          {result.invite === "sent" && result.email
+            ? <>We&apos;ve emailed <b>{result.email}</b> an invite to sign in as your program&apos;s admin. From there you can invite your leaders, organize cohorts and follow their progress. If it doesn&apos;t arrive in a few minutes, check your spam folder or <Link href="/signin">sign in here</Link> with that address.</>
+            : result.invite === "existing" && result.email
+            ? <><b>{result.email}</b> already has an account and is now your program&apos;s admin. <Link href="/signin">Sign in</Link> with that address to invite your leaders, organize cohorts and follow their progress.</>
+            : <>We&apos;ll email your program admin an invite to sign in shortly. If it doesn&apos;t arrive, contact us and we&apos;ll sort it out.</>}
+        </p>
+      </section>
+    );
+  }
+  if (result.kind === "seats") {
+    return (
+      <section className="blk">
+        <div className="checkin">
+          <h3>Thank you! Seats added</h3>
+          <p><b>{result.seats}</b> more leader seat{result.seats === 1 ? "" : "s"} for {result.orgName}{result.total !== null ? <>, for <b>{result.total}</b> in total</> : null}. Stripe will email your receipt.</p>
+        </div>
+        <p style={{ marginTop: 18 }}><Link className="btn primary" href="/admin">Back to Leaders and cohorts</Link></p>
+      </section>
+    );
+  }
+
   return (
     <section className="blk">
       <div className="checkin">

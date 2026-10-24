@@ -112,8 +112,19 @@ type Payment = { id: string; email: string | null; plan: string; amount_cents: n
 function Purchases() {
   const [rows, setRows] = useState<Payment[] | null>(null);
   useEffect(() => {
-    supabaseBrowser().from("payments").select("id, email, plan, amount_cents, launch_price, created_at").order("created_at", { ascending: false }).limit(100)
-      .then((r: { data: unknown }) => setRows((r.data ?? []) as Payment[]));
+    const db = supabaseBrowser();
+    type OrgPayment = { id: string; email: string | null; kind: string; seats: number; amount_cents: number; created_at: string; organizations: { name: string } | null };
+    Promise.all([
+      db.from("payments").select("id, email, plan, amount_cents, launch_price, created_at").order("created_at", { ascending: false }).limit(100),
+      db.from("org_payments").select("id, email, kind, seats, amount_cents, created_at, organizations(name)").order("created_at", { ascending: false }).limit(100),
+    ]).then(([p, o]: { data: unknown }[]) => {
+      // Company purchases are listed alongside individual ones, as "Company: <name> (N seats)".
+      const company = ((o.data ?? []) as OrgPayment[]).map((x) => ({
+        id: x.id, email: x.email, amount_cents: x.amount_cents, created_at: x.created_at, launch_price: false,
+        plan: `company: ${x.organizations?.name ?? "?"} (${x.kind === "initial" ? "" : "+"}${x.seats} seat${x.seats === 1 ? "" : "s"})`,
+      }));
+      setRows([...((p.data ?? []) as Payment[]), ...company].sort((a, b) => b.created_at.localeCompare(a.created_at)));
+    });
   }, []);
   if (!rows) return null;
   const total = rows.reduce((a, r) => a + r.amount_cents, 0);

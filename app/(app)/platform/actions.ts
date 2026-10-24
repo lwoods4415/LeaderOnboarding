@@ -2,13 +2,13 @@
 // The platform owner's review queue: intake requests, their tailored drafts, and approval.
 // Every action first checks, as the caller, that they are the super admin.
 import { after } from "next/server";
-import { headers } from "next/headers";
-import { createGeneralRequest, GENERAL_TEMPLATE_ID, loadTemplate, PROGRAM, runDraft, uniqueSlug, type RequestRow } from "@/lib/drafts";
+import { activateCompany, createAwaitingCompany, inviteContact, payLink } from "@/lib/companies";
+import { createGeneralRequest, GENERAL_TEMPLATE_ID, loadTemplate, PROGRAM, runDraft, type RequestRow } from "@/lib/drafts";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
 import { diff, placeOf, setLeaf, type Doc } from "@/lib/tailor";
 
-export type Result = { ok: boolean; message: string };
+export type Result = { ok: boolean; message: string; payLink?: string };
 export type RequestSummary = Pick<RequestRow, "id" | "kind" | "org_name" | "contact_name" | "contact_email" | "status" | "draft_cost" | "created_at" | "drafted_at">;
 export type ReviewChange = { path: string; place: string; before: string; after: string };
 export type RequestDetail = RequestSummary & {
@@ -18,6 +18,8 @@ export type RequestDetail = RequestSummary & {
   problems: string | null;
   baseTemplateId: string | null;
   changes: ReviewChange[];
+  /** The private payment link, while the program waits for payment. */
+  payLink: string | null;
 };
 
 const fail = (message: string): Result => ({ ok: false, message });
@@ -29,11 +31,6 @@ async function requireSuperAdmin() {
   const { data: ok } = await supabase.rpc("is_super_admin");
   if (!ok) throw new Error("Not allowed");
   return { db: supabaseAdmin(), myId: auth.user.id };
-}
-
-async function siteUrl() {
-  const h = await headers();
-  return process.env.SITE_URL || h.get("origin") || `https://${h.get("host")}`;
 }
 
 const SUMMARY_COLS = "id, kind, org_name, contact_name, contact_email, status, draft_cost, created_at, drafted_at";
@@ -66,6 +63,7 @@ export async function getRequest(id: string): Promise<RequestDetail | null> {
     id: r.id, kind: r.kind, org_name: r.org_name, contact_name: r.contact_name, contact_email: r.contact_email, status: r.status,
     draft_cost: Number(r.draft_cost), created_at: r.created_at, drafted_at: r.drafted_at,
     answers: r.answers, summary: r.draft_summary, notes: r.review_notes, problems: r.draft_error, baseTemplateId: r.base_template_id, changes,
+    payLink: r.status === "awaiting_payment" && r.pay_token ? payLink(r.pay_token) : null,
   };
 }
 
@@ -136,36 +134,39 @@ export async function approveRequest(id: string): Promise<Result> {
   }
 
   if (r.kind !== "company" || !r.org_name || !r.contact_email) return fail("This request is missing the organization or contact details.");
-  const email = r.contact_email.toLowerCase();
-  const { data: org, error: orgError } = await db.from("organizations")
-    .insert({ name: r.org_name, slug: await uniqueSlug(db, r.org_name), kind: "company" }).select("id").single();
-  if (orgError || !org) return fail("Couldn't create the organization. Try again.");
-  const undo = async (message: string) => { await db.from("organizations").delete().eq("id", org.id); return fail(message); };
-
-  const { data: op, error: opError } = await db.from("org_programs").insert({
-    org_id: org.id, program: PROGRAM, template_id: r.base_template_id, status: "live", intake: r.answers,
-    content: r.draft_content, approved_at: now, approved_by: myId,
-  }).select("id").single();
-  if (opError || !op) return undo("Couldn't save the program. Nothing was created; try again.");
-  const sec = await db.from("org_program_secrets").insert({ org_program_id: op.id, secrets: r.draft_secrets });
-  if (sec.error) return undo("Couldn't save the program. Nothing was created; try again.");
-
-  // The contact becomes the organization's admin, enrolled so they can see the program their leaders see.
-  const { data: existing } = await db.from("profiles").select("id").eq("email", email).maybeSingle();
-  let userId = existing?.id as string | undefined;
-  if (!userId) {
-    const { data, error } = await db.auth.admin.inviteUserByEmail(email, { redirectTo: `${await siteUrl()}/auth/callback` });
-    if (error || !data.user) return undo(error?.status === 429 ? "Too many emails sent recently. Wait a few minutes and approve again." : `Couldn't send the invite: ${error?.message ?? "unknown error"}. Nothing was created.`);
-    userId = data.user.id;
-    const p = await db.from("profiles").insert({ id: userId, email, name: r.contact_name ?? "" });
-    if (p.error) { await db.auth.admin.deleteUser(userId); return undo("Couldn't save the contact. Nothing was created; try again."); }
+  try {
+    const { token } = await createAwaitingCompany(db, r, myId);
+    return { ok: true, message: `Approved. ${r.org_name}'s program is waiting for payment. Copy the payment link below and send it to ${r.contact_email}. The program goes live when they pay.`, payLink: payLink(token) };
+  } catch (err) {
+    return fail(err instanceof Error ? `${err.message} Nothing was created; try again.` : "Couldn't approve. Try again.");
   }
-  const m = await db.from("memberships").insert({ user_id: userId, org_id: org.id, role: "org_admin" });
-  const e = m.error ? m : await db.from("enrollments").insert({ user_id: userId, org_id: org.id, org_program_id: op.id, plan: "company" });
-  if (e.error) return undo("Couldn't add the contact as admin. Nothing was created; try again.");
+}
 
-  await db.from("intake_requests").update({ status: "approved", approved_at: now, approved_by: myId, org_id: org.id }).eq("id", id);
-  return existing
-    ? { ok: true, message: `Approved. ${r.org_name} is live, and ${email} (who already had an account) is its admin. No email was sent.` }
-    : { ok: true, message: `Approved. ${r.org_name} is live, and an invite was emailed to ${email} as its admin.` };
+/** For special arrangements (a pilot, an invoice paid outside Stripe): makes the program live with no seat limit. */
+export async function activateWithoutPayment(id: string): Promise<Result> {
+  const { db } = await requireSuperAdmin();
+  const r = await getRow(db, id);
+  if (!r || r.status !== "awaiting_payment") return fail("Only a program waiting for payment can be activated.");
+  try {
+    const { invite } = await activateCompany(db, id, null, new Date());
+    return { ok: true, message: inviteMessage(r, invite, "Activated without payment, with no limit on leaders.") };
+  } catch {
+    return fail("Couldn't activate the program. Try again.");
+  }
+}
+
+/** Sends the contact's admin invite again (for example if the first one never arrived). */
+export async function resendInvite(id: string): Promise<Result> {
+  const { db } = await requireSuperAdmin();
+  const r = await getRow(db, id);
+  if (!r || r.status !== "approved" || r.kind !== "company") return fail("That program isn't live.");
+  return { ok: true, message: inviteMessage(r, await inviteContact(db, r), "") };
+}
+
+function inviteMessage(r: RequestRow, invite: string, lead: string) {
+  const who = r.contact_email ?? "the contact";
+  const tail = invite === "sent" ? `An admin invite was emailed to ${who}.`
+    : invite === "existing" || invite === "already live" ? `${who} already had an account, so no email was sent; they can sign in as usual.`
+    : `The admin invite didn't send: ${invite}`;
+  return `${lead} ${tail}`.trim();
 }

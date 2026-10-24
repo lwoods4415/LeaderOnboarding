@@ -20,7 +20,7 @@ export type RequestRow = {
   contact_name: string | null;
   contact_email: string | null;
   answers: Record<string, string>;
-  status: "new" | "drafting" | "draft_ready" | "draft_failed" | "approved" | "declined";
+  status: "new" | "drafting" | "draft_ready" | "draft_failed" | "awaiting_payment" | "approved" | "declined";
   base_template_id: string | null;
   draft_content: ProgramContent | null;
   draft_secrets: ProgramSecrets | null;
@@ -32,6 +32,7 @@ export type RequestRow = {
   approved_at: string | null;
   org_id: string | null;
   template_id: string | null;
+  pay_token: string | null;
   created_at: string;
 };
 
