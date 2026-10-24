@@ -1,13 +1,13 @@
 "use client";
 import { useState } from "react";
-import { labelFor, MAX_ANSWER, questionsFor } from "@/lib/intake";
+import { labelFor, MAX_ANSWER, questionsFor, type IntakeKind } from "@/lib/intake";
 import { submitIntake, type IntakeInput } from "./actions";
 import { signUpFree } from "./signup";
 
 const EMPTY: IntakeInput = { kind: "company", orgName: "", contactName: "", contactRole: "", contactEmail: "", answers: {}, website: "" };
 
-export function IntakeForm() {
-  const [form, setForm] = useState<IntakeInput>(EMPTY);
+export function IntakeForm({ initialKind = "company" }: { initialKind?: IntakeKind }) {
+  const [form, setForm] = useState<IntakeInput>({ ...EMPTY, kind: initialKind });
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState("");
   const kind = form.kind;

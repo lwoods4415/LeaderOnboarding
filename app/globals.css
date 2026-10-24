@@ -383,3 +383,45 @@ a.btn.primary{color:var(--bg)}
 .locked-card{border:1px dashed var(--line);border-radius:14px;padding:20px 22px;background:var(--surface);max-width:60ch}
 .locked-card h3{margin-top:0}
 .rp-picker .rp-upsell{flex:0 0 auto;border:1px dashed var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;text-decoration:none;color:inherit;display:flex;flex-direction:column}
+/* Public home page (/welcome) */
+.landing{display:flex;flex-direction:column;gap:64px;padding-top:20px}
+.land-nav{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.land-brand{font-family:var(--f-display);font-weight:800;font-size:1.15rem}
+.land-nav .row{gap:18px;font-weight:600;font-size:.95rem}
+.land-nav a{text-decoration:none}
+.land-hero{display:flex;flex-direction:column;gap:16px;padding-top:24px;max-width:860px}
+.land-hero h1{font-size:clamp(2.3rem,6vw,4.2rem);font-weight:800}
+.land-hero h1 span{color:var(--accent);display:block}
+.land-lede{font-size:1.12rem;color:var(--muted);max-width:66ch}
+.land-cta{gap:12px;margin-top:6px}
+.land-cta .btn{padding:13px 22px;font-size:1rem;text-decoration:none}
+.land-sec{display:flex;flex-direction:column;gap:14px}
+.land-sec h2{font-size:clamp(1.7rem,3.6vw,2.5rem);font-weight:800;max-width:30ch}
+.land-sec h2 em{font-style:normal;color:var(--accent)}
+.land-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;margin-top:10px}
+.land-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+.land-card.sky{background:var(--sky);border-color:transparent}
+.land-card.peach{background:var(--peach);border-color:transparent}
+.land-card h3{font-size:1.25rem}
+.land-from{color:var(--muted);text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--muted) 45%,transparent)}
+.land-to{font-weight:600;color:var(--blue)}
+.land-steps{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;counter-reset:step}
+.land-steps li{counter-increment:step;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:6px}
+.land-steps li::before{content:counter(step);font-family:var(--f-display);font-weight:800;font-size:1.6rem;color:var(--accent)}
+.land-steps b{font-family:var(--f-display);font-size:1.1rem}
+.land-steps span{color:var(--muted)}
+.land-practice{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;align-items:center;background:var(--sky);border-radius:18px;padding:30px}
+.land-practice>div{display:flex;flex-direction:column;gap:14px}
+.land-convs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.land-convs li{background:var(--surface);border-radius:10px;padding:10px 14px;font-weight:600}
+.land-company{margin-top:22px;display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--peach);border-radius:16px;padding:24px 26px}
+.land-company>div{max-width:70ch;display:flex;flex-direction:column;gap:8px}
+.land-company .btn{text-decoration:none}
+.land-faq{display:flex;flex-direction:column;gap:10px;max-width:780px}
+.land-faq details{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 18px}
+.land-faq summary{font-weight:600;cursor:pointer}
+.land-faq details p{margin-top:8px;color:var(--muted)}
+.land-foot{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:.9rem}
+.land-foot .row{gap:16px}
+.plan .btn{text-decoration:none;text-align:center}
+@media (max-width:760px){ .land-practice{grid-template-columns:1fr;padding:22px} .landing{gap:48px} }
