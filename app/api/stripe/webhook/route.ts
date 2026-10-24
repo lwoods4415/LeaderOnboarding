@@ -15,7 +15,8 @@ export async function POST(request: Request) {
     return new Response("Bad signature", { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
+  // Only our own checkouts carry an enrollment; anything else (e.g. a test event from the Stripe dashboard) is acknowledged and ignored.
+  if ((event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") && event.data.object.metadata?.enrollment_id) {
     try {
       await fulfill(event.data.object.id);
     } catch (err) {
