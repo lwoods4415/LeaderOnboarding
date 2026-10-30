@@ -40,6 +40,28 @@ export type Growth = {
   n12: string;
 };
 
+/**
+ * A leader's work in one core lesson (content/core-lessons), keyed by lesson id (cl-m0 … cl-m6).
+ * Split on save: opened, completedAt and checkAnswers go to the record the program leader can see;
+ * written answers, sliders, sorting and cards explored stay private (see lib/sync.ts).
+ */
+export type CoreLessonState = {
+  opened?: string;
+  completedAt?: string;
+  /** Check question id → chosen option index. */
+  checkAnswers?: Record<string, number>;
+  /** "Make it yours" and self-placement question id → text. */
+  answers?: Record<string, string>;
+  /** Cards flipped, stages viewed or quadrants opened. */
+  modelExplored?: string[];
+  /** Equation slider values (factor id → value). */
+  sliders?: Record<string, number>;
+  /** Sort model item id → chosen bucket. */
+  modelSorted?: Record<string, string>;
+  /** Spotlight activity item id → chosen bucket (the marble jar). */
+  spotlightSorted?: Record<string, string>;
+};
+
 export type LeaderState = {
   checks: Record<string, boolean>;
   notes: Record<string, string>;
@@ -51,6 +73,7 @@ export type LeaderState = {
   rpSel: string;
   shared: { refl: Record<string, { text: string; at: string }>; rp: Record<string, { turns: Turn[]; at: string }> };
   growth: Growth;
+  coreLessons: Record<string, CoreLessonState>;
   updatedAt: number;
 };
 
@@ -59,6 +82,7 @@ export function blankState(): LeaderState {
     checks: {}, notes: {}, picks: {}, braving: {}, planner: {}, me: {}, rp: {}, rpSel: "rp0",
     shared: { refl: {}, rp: {} },
     growth: { self0: {}, self12: {}, pulse0: {}, pulse12: {}, n0: "", n12: "" },
+    coreLessons: {},
     updatedAt: 0,
   };
 }
@@ -71,7 +95,13 @@ export function normalize(saved: Partial<LeaderState>): LeaderState {
   s.growth = { ...b.growth, ...s.growth };
   s.shared = { refl: s.shared.refl ?? {}, rp: s.shared.rp ?? {} };
   for (const k in s.picks) if (typeof s.picks[k] !== "object" || s.picks[k] === null) delete s.picks[k];
+  for (const k in s.coreLessons) if (typeof s.coreLessons[k] !== "object" || s.coreLessons[k] === null) delete s.coreLessons[k];
   return s;
+}
+
+export function lessonState(s: LeaderState, id: string): CoreLessonState {
+  if (!s.coreLessons[id]) s.coreLessons[id] = {};
+  return s.coreLessons[id];
 }
 
 export function rpState(s: LeaderState, id: string): RpState {

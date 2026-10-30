@@ -11,7 +11,8 @@
     "verify:content": "node scripts/verify-content.mjs",
     "check:bundle": "node --env-file=.env.local scripts/check-bundle.mjs",
     "dev:staging": "node scripts/with-env.mjs .env.staging.local next dev -p 3001",
-    "test:rls:staging": "node --env-file=.env.staging.local --test tests/rls.test.mjs"
+    "test:rls:staging": "node --env-file=.env.staging.local --test tests/rls.test.mjs",
+    "verify:lessons": "tsx scripts/core-lessons/validate.ts && tsx scripts/core-lessons/test-tailoring.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
@@ -29,6 +30,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

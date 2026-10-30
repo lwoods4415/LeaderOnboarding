@@ -4,10 +4,11 @@ import { useState } from "react";
 import { shareReflection, unshareReflection } from "@/lib/sharing";
 import { useLeader } from "@/lib/store";
 
-export function ShareBar({ id }: { id: string }) {
+/** `text` is the answer to share when it isn't a module reflection (e.g. a core lesson's "Make it yours" answer). */
+export function ShareBar({ id, text }: { id: string; text?: string }) {
   const s = useLeader();
   const sh = s.shared.refl[id];
-  const txt = (s.notes[id] ?? "").trim();
+  const txt = (text ?? s.notes[id] ?? "").trim();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 

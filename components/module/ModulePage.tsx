@@ -5,13 +5,14 @@ import type { Module, Roleplay } from "@/content";
 import { useProgram } from "@/lib/program";
 import { PROGRAM_NAME } from "@/program.config";
 import { raw } from "@/lib/html";
-import { modProgress, rpAvg } from "@/lib/progress";
+import { lessonFor, modProgress, rpAvg } from "@/lib/progress";
 import { update, useLeader } from "@/lib/store";
 import { CheckRow } from "../ui";
 import { useOpenRoleplay } from "../useOpenRoleplay";
 import { ShareBar } from "./ShareBar";
 import { Scenario } from "./Scenario";
 import { LockedCard } from "../LockedCard";
+import { CoreLesson, FieldCardButton } from "../lesson/CoreLesson";
 
 export function ModulePage({ id }: { id: string }) {
   const s = useLeader();
@@ -21,6 +22,7 @@ export function ModulePage({ id }: { id: string }) {
   const m = MODULES[i];
   const p = modProgress(s, m, program);
   const rp = roleplayFor(m.id);
+  const lesson = lessonFor(program, m.id);
   const prev = MODULES[i - 1], next = MODULES[i + 1];
   // Set here rather than in generateMetadata, which would block prefetching on URL data.
   useEffect(() => { document.title = `${m.weeks}: ${m.short} · ${PROGRAM_NAME}`; }, [m]);
@@ -43,6 +45,7 @@ export function ModulePage({ id }: { id: string }) {
         <h2 {...raw(m.title)} />
         <div className="sub" {...raw(m.sub)} />
         <div className="bar" aria-label="Module progress"><span style={{ width: `${p.pct}%` }} /></div>
+        {lesson ? <div><FieldCardButton lesson={lesson} /></div> : null}
       </div>
       <div className="pair">
         <div className="panel peach"><span className="tag">What changes</span><p {...raw(m.changes)} /></div>
@@ -50,7 +53,8 @@ export function ModulePage({ id }: { id: string }) {
           <dl className="shift"><dt>From</dt><dd {...raw(`“${m.from}”`)} /><dt>To</dt><dd className="to" {...raw(`“${m.to}”`)} /></dl>
         </div>
       </div>
-      <section className="blk"><h3>1. Learn</h3><p className="lede">Ideas from leaders and researchers worth knowing at this stage.</p>
+      {lesson ? <CoreLesson lesson={lesson} rp={rp} /> : null}
+      <section className="blk"><h3>{lesson ? "1. Voices on this idea" : "1. Learn"}</h3><p className="lede">Ideas from leaders and researchers worth knowing at this stage.</p>
         <div className="learn">
           {m.learn.map((l, k) => (
             <div className="card" key={k}><h4 {...raw(l.h)} /><span className="src" {...raw(l.src)} /><p {...raw(l.p)} /></div>

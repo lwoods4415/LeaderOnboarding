@@ -1,5 +1,6 @@
 // The leader's program, trimmed to what their plan includes. The database doesn't let the browser read
 // program text directly, so locked modules never leave the server.
+import { coreLessonsFor } from "@/lib/coreLessons";
 import { contentFor, effectivePlan, type Plan } from "@/lib/plans";
 import type { ProgramContent } from "@/content/program";
 import { fail } from "@/lib/practice";
@@ -20,8 +21,10 @@ export async function GET(request: Request) {
   ]);
   if (!e || !active) return fail(403, "Your access to this program isn't active.");
 
-  const { data: op } = await supabaseAdmin().from("org_programs").select("content").eq("id", e.org_program_id).maybeSingle();
+  const { data: op } = await supabaseAdmin().from("org_programs").select("content, organizations(slug)").eq("id", e.org_program_id).maybeSingle();
   if (!op) return fail(404, "Program not found.");
   const plan = effectivePlan(e.plan as Plan, e.expires_at);
-  return Response.json({ plan, content: contentFor(op.content as ProgramContent, plan) }, { headers: { "Cache-Control": "private, no-store" } });
+  const content = contentFor(op.content as ProgramContent, plan);
+  const lessons = coreLessonsFor((op.organizations as unknown as { slug: string } | null)?.slug, plan);
+  return Response.json({ plan, content: lessons ? { ...content, coreLessons: lessons } : content }, { headers: { "Cache-Control": "private, no-store" } });
 }

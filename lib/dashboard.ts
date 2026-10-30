@@ -21,6 +21,8 @@ export type DashLeader = {
   picks: Record<string, ScenarioPicks>;
   rp: Record<string, Omit<RpState, "turns">>;
   growth: Growth | null;
+  /** Core lessons: opened and completed dates and check answers (never written answers or sliders). */
+  lessons: Record<string, { opened?: string; completedAt?: string; checkAnswers?: Record<string, number> }>;
   shared: { refl: Record<string, { text: string; at: string }>; rp: Record<string, { turns: Turn[]; at: string }> };
 };
 export type Usage = { userId: string | null; model: string; input: number; output: number };
@@ -56,7 +58,7 @@ export async function loadDashboard(orgId: string, orgProgramId: string, program
   if (profiles.error) throw profiles.error;
   const profileOf = new Map(((profiles.data ?? []) as Profile[]).map((p) => [p.id, p]));
 
-  type ProgressDoc = { picks?: DashLeader["picks"]; rp?: DashLeader["rp"]; growth?: Growth; summary?: { overall: number; modules: { id: string; pct: number }[] } };
+  type ProgressDoc = { picks?: DashLeader["picks"]; rp?: DashLeader["rp"]; growth?: Growth; coreLessons?: DashLeader["lessons"]; summary?: { overall: number; modules: { id: string; pct: number }[] } };
   const prog = new Map((progress.data as { enrollment_id: string; data: ProgressDoc }[]).map((r) => [r.enrollment_id, r.data]));
   type Member = { user_id: string; role: string; active: boolean };
   const member = new Map((members.data as Member[]).map((m) => [m.user_id, m]));
@@ -70,7 +72,7 @@ export async function loadDashboard(orgId: string, orgProgramId: string, program
       id: e.user_id, enrollmentId: e.id, name: p.name || p.email, email: p.email, cohort: e.cohorts?.name ?? "", lastActive: p.last_active,
       overall: d.summary?.overall ?? 0,
       modules: d.summary?.modules ?? program.modules.map((x) => ({ id: x.id, pct: 0 })),
-      picks: d.picks ?? {}, rp: d.rp ?? {}, growth: d.growth ?? null,
+      picks: d.picks ?? {}, rp: d.rp ?? {}, growth: d.growth ?? null, lessons: d.coreLessons ?? {},
       shared: { refl: {}, rp: {} },
     });
   }
@@ -165,4 +167,20 @@ export function summaryCsv(leaders: DashLeader[], p: ProgramContent) {
       strong[1] ? `${strong[0]} of ${strong[1]}` : ""];
   });
   return [head, ...rows].map((r) => r.map(cell).join(",")).join("\r\n");
+}
+
+/**
+ * Core lesson check questions, for "Focus for your next lab": per question, how many leaders answered and
+ * the share who chose the correct option.
+ */
+export function lessonCheckSummary(docs: DashLeader[], program: Pick<ProgramContent, "coreLessons">) {
+  return (program.coreLessons ?? []).map((l) => ({
+    lesson: l,
+    completed: docs.filter((d) => d.lessons[l.id]?.completedAt).length,
+    questions: l.check.map((q) => {
+      const correct = q.options.findIndex((o) => o.correct);
+      const answers = docs.map((d) => d.lessons[l.id]?.checkAnswers?.[q.id]).filter((a): a is number => a != null);
+      return { q, answered: answers.length, pct: answers.length ? Math.round((answers.filter((a) => a === correct).length / answers.length) * 100) : null };
+    }),
+  }));
 }

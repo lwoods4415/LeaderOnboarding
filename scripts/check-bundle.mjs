@@ -22,6 +22,11 @@ const needles = [
   ["the name SUPABASE_SECRET_KEY", "SUPABASE_SECRET_KEY"],
   ["an sk-ant- key", "sk-ant-"],
   ...Object.entries(ROLEPLAY_SECRETS).map(([id, s]) => [`${id} hidden context`, s.hidden.slice(0, 60)]),
+  // Core lessons reach the browser only from /api/program, trimmed to the leader's plan.
+  ...readdirSync("content/core-lessons").filter((f) => /^m\d/.test(f)).map((f) => {
+    const m = readFileSync(`content/core-lessons/${f}`, "utf8").match(/bigIdea:\s*"([^"]{20,60})/);
+    return [`core lesson text (${f})`, m?.[1]];
+  }),
 ].filter(([, v]) => v);
 
 let found = 0;

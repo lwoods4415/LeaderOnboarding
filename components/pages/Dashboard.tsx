@@ -8,7 +8,7 @@ import { useProgram } from "@/lib/program";
 import { raw } from "@/lib/html";
 import { rpAvg } from "@/lib/progress";
 import {
-  avg, change, costOf, currentModule, loadDashboard, lowestSkills, practiceAvg, pulseAvg, selfAvg, strongChoices, summaryCsv,
+  avg, change, costOf, currentModule, lessonCheckSummary, loadDashboard, lowestSkills, practiceAvg, pulseAvg, selfAvg, strongChoices, summaryCsv,
   type DashData, type DashLeader,
 } from "@/lib/dashboard";
 import { useProfile } from "../Account";
@@ -73,6 +73,8 @@ export function Dashboard() {
   const pulseD = avg(docs.map((d) => change(pulseAvg(d, 0, program), pulseAvg(d, 12, program))));
   const skills = lowestSkills(docs, program);
   const scen = strongChoices(docs, program);
+  const lessonChecks = lessonCheckSummary(docs, program);
+  const lessonCount = program.coreLessons?.length ?? 0;
   const ids = new Set(docs.map((d) => d.id));
   const usage = data.usage.filter((u) => u.userId && ids.has(u.userId));
   const costs = usage.map(costOf);
@@ -100,10 +102,23 @@ export function Dashboard() {
             ))}</ul> : <p className="note">Appears once leaders work through scenarios.</p>}
           </div>
         </div>
+        {lessonChecks.length ? (
+          <div className="card" style={{ marginTop: 12 }}><h4>Core lesson checks</h4>
+            <p className="note">Share of leaders who chose the best answer, per question. Low scores are good topics for the lab.</p>
+            {lessonChecks.map(({ lesson, completed, questions }) => (
+              <details key={lesson.id} style={{ marginTop: 8 }}>
+                <summary><b>{lesson.title}</b> <span className="note">· {completed} of {docs.length} completed</span></summary>
+                <ul className="plain" style={{ marginTop: 6 }}>{questions.map(({ q, answered, pct }) => (
+                  <li key={q.id}>{pct == null ? "–" : `${pct}%`} <span className="note">({answered} answered)</span> · {q.question}</li>
+                ))}</ul>
+              </details>
+            ))}
+          </div>
+        ) : null}
       </section>
       <section className="blk"><h3>Leaders</h3><p className="lede">Module completion in percent. Select a leader to see their details.</p>
         <div className="hm-wrap"><table className="hm">
-          <thead><tr><th>Leader</th>{MODULES.map((m) => <th key={m.id} title={m.short}>{wk(m.weeks)}</th>)}<th>Practice</th><th>Last active</th></tr></thead>
+          <thead><tr><th>Leader</th>{MODULES.map((m) => <th key={m.id} title={m.short}>{wk(m.weeks)}</th>)}{lessonCount ? <th title="Core lessons completed">Lessons</th> : null}<th>Practice</th><th>Last active</th></tr></thead>
           <tbody>
             {docs.map((d) => (
               <tr key={d.id} className={sel === d.id ? "sel" : ""}>
@@ -112,6 +127,7 @@ export function Dashboard() {
                   const p = d.modules.find((x) => x.id === m.id)?.pct ?? 0;
                   return <td key={m.id}><span className={`cell c${p >= 100 ? 4 : p >= 60 ? 3 : p >= 30 ? 2 : p > 0 ? 1 : 0}`} title={`${m.short}: ${p}%`}>{p}</span></td>;
                 })}
+                {lessonCount ? <td>{(program.coreLessons ?? []).filter((l) => d.lessons[l.id]?.completedAt).length}/{lessonCount}</td> : null}
                 <td>{practiceAvg(d) ?? "–"}</td><td>{ago(d.lastActive)}</td>
               </tr>
             ))}
@@ -149,10 +165,15 @@ function LeaderDetail({ d }: { d: DashLeader }) {
   const worked = MODULES.filter((m) => d.picks[m.id] && (d.picks[m.id].first || d.picks[m.id].s0 != null));
   const prac = ROLEPLAYS.filter((r) => d.rp[r.id]);
   const custom = Object.entries(d.rp).filter(([id, x]) => isCustomId(id) && (x.fb || x.history?.length));
-  const refl = Object.entries(d.shared.refl).map(([id, v]) => {
+  const lessons = program.coreLessons ?? [];
+  // Core lesson questions ("Make it yours" and self-placement) are plain text, shared like reflections.
+  const lessonQ = new Map(lessons.flatMap((l) => [...l.makeItYours.questions, ...(l.model.type === "matrix" ? l.model.selfPlacement?.questions ?? [] : [])]
+    .map((q) => [q.id, { lesson: l.title, prompt: q.prompt }] as const)));
+  const refl = Object.entries(d.shared.refl).filter(([id]) => !lessonQ.has(id)).map(([id, v]) => {
     const m = MODULES.find((x) => x.reflect.some((r) => r.id === id));
     return { id, v, m, q: m?.reflect.find((r) => r.id === id)?.q ?? id };
   });
+  const lessonShared = Object.entries(d.shared.refl).filter(([id]) => lessonQ.has(id)).map(([id, v]) => ({ id, v, ...lessonQ.get(id)! }));
 
   return (
     <section className="blk detail" id="dash-detail">
@@ -216,10 +237,36 @@ function LeaderDetail({ d }: { d: DashLeader }) {
         <div className="gr"><span><b>Responses</b></span><span>{g?.n0 || "–"}</span><span>{g?.n12 || "–"}</span><div></div></div>
       </div>
 
+      {lessons.length ? (
+        <>
+          <h4 className="dh">Core lessons</h4>
+          <div className="stack">{lessons.map((l) => {
+            const x = d.lessons[l.id];
+            const right = l.check.filter((q) => x?.checkAnswers?.[q.id] != null && q.options[x.checkAnswers[q.id]]?.correct).length;
+            const answered = l.check.filter((q) => x?.checkAnswers?.[q.id] != null).length;
+            return (
+              <div className="card" key={l.id}>
+                <span className="eyebrow">{x?.completedAt ? `Completed ${x.completedAt}` : x?.opened ? `Opened ${x.opened}` : "Not opened yet"}</span>
+                <h4>{l.title}</h4>
+                {answered ? <p className="note">Check questions: {right} of {l.check.length} best answers{answered < l.check.length ? ` (${answered} answered)` : ""}</p> : null}
+              </div>
+            );
+          })}</div>
+        </>
+      ) : null}
+
       <h4 className="dh">Shared reflections</h4>
       {refl.length ? <div className="stack">{refl.map(({ id, v, m, q }) => (
         <div className="card" key={id}><span className="eyebrow">{m ? <span {...raw(m.short)} /> : null} · shared {v.at}</span><h4 {...raw(q)} /><p>{v.text}</p></div>
       ))}</div> : <p className="note">Nothing shared yet. Reflections stay private unless the leader shares them.</p>}
+      {lessonShared.length ? (
+        <>
+          <h4 className="dh">Shared lesson answers</h4>
+          <div className="stack">{lessonShared.map(({ id, v, lesson, prompt }) => (
+            <div className="card" key={id}><span className="eyebrow">{lesson} · shared {v.at}</span><h4>{prompt}</h4><p>{v.text}</p></div>
+          ))}</div>
+        </>
+      ) : null}
     </section>
   );
 }

@@ -7,6 +7,7 @@ import { MEASURES, MODULES } from "./leading-people/modules";
 import { MODES, ROLEPLAYS } from "./leading-people/roleplays";
 import { PASSAGES, PROGRAM, SPONSOR } from "./leading-people/program";
 import { PULSE_OPEN, PULSE_Q, SELF_SKILLS } from "./leading-people/growth";
+import type { CoreLesson } from "./core-lessons/types";
 import type { Difficulty, Measure, Module, PathwayStage, PlannerTool, Program, Roleplay, RoleplaySecret, Sponsor, Tool } from "./types";
 
 export type ProgramContent = {
@@ -26,6 +27,11 @@ export type ProgramContent = {
   books: [string, string][];
   braving: [string, string][];
   sponsor: Sponsor;
+  /**
+   * Core lessons (content/core-lessons), added by the server for programs that have them and trimmed to the
+   * leader's plan. Never stored with the program in the database.
+   */
+  coreLessons?: CoreLesson[];
 };
 
 /** Server-only parts of a program. */

@@ -7,7 +7,7 @@ import { useSyncExternalStore } from "react";
 import type { ProgramContent } from "@/content/program";
 import { isCustomId } from "@/content/custom-practice";
 import { modProgress, overall } from "./progress";
-import { blankState, normalize, type LeaderState, type RpState, type Turn } from "./state";
+import { blankState, normalize, type CoreLessonState, type LeaderState, type RpState, type Turn } from "./state";
 import { loadShared } from "./sharing";
 import { getState, onLocalChange, replaceState, setUser } from "./store";
 import { supabaseBrowser } from "./supabase/client";
@@ -17,9 +17,13 @@ export type SaveStatus = "loading" | "saved" | "saving" | "offline";
 type PrivateDoc = Pick<LeaderState, "checks" | "notes" | "braving" | "planner" | "rpSel" | "updatedAt"> & {
   me: { start?: string; leader?: string };
   turns: Record<string, Turn[]>;
+  /** Core lessons: written answers, sliders, sorting and cards explored. */
+  coreLessons?: Record<string, Omit<CoreLessonState, "opened" | "completedAt" | "checkAnswers">>;
 };
 type ProgressDoc = Pick<LeaderState, "picks" | "growth" | "updatedAt"> & {
   rp: Record<string, Omit<RpState, "turns">>;
+  /** Core lessons: when opened and completed, and the check answers (shown like scenario choices). */
+  coreLessons?: Record<string, Pick<CoreLessonState, "opened" | "completedAt" | "checkAnswers">>;
   summary: { overall: number; modules: { id: string; pct: number }[] };
 };
 
@@ -30,13 +34,20 @@ export function split(s: LeaderState, program: ProgramContent): { priv: PrivateD
     if (x.turns.length) turns[id] = x.turns;
     rp[id] = { mode: x.mode, fb: x.fb, history: x.history };
   }
+  const lessonsPriv: NonNullable<PrivateDoc["coreLessons"]> = {};
+  const lessonsProg: NonNullable<ProgressDoc["coreLessons"]> = {};
+  for (const [id, x] of Object.entries(s.coreLessons)) {
+    const { opened, completedAt, checkAnswers, ...rest } = x;
+    lessonsProg[id] = { opened, completedAt, checkAnswers };
+    lessonsPriv[id] = rest;
+  }
   return {
     priv: {
       checks: s.checks, notes: s.notes, braving: s.braving, planner: s.planner, rpSel: s.rpSel,
-      me: { start: s.me.start, leader: s.me.leader }, turns, updatedAt: s.updatedAt,
+      me: { start: s.me.start, leader: s.me.leader }, turns, coreLessons: lessonsPriv, updatedAt: s.updatedAt,
     },
     prog: {
-      picks: s.picks, growth: s.growth, rp, updatedAt: s.updatedAt,
+      picks: s.picks, growth: s.growth, rp, coreLessons: lessonsProg, updatedAt: s.updatedAt,
       summary: { overall: overall(s, program), modules: program.modules.map((m) => ({ id: m.id, pct: modProgress(s, m, program).pct })) },
     },
   };
@@ -52,7 +63,12 @@ export function join(priv: Partial<PrivateDoc> | null, prog: Partial<ProgressDoc
     const p = prog?.rp?.[id], t = priv?.turns?.[id];
     if (p || t) rp[id] = { mode: p?.mode ?? "realistic", fb: p?.fb ?? null, history: p?.history ?? [], turns: t ?? [] };
   }
+  const coreLessons: LeaderState["coreLessons"] = {};
+  for (const id of new Set([...Object.keys(priv?.coreLessons ?? {}), ...Object.keys(prog?.coreLessons ?? {})])) {
+    coreLessons[id] = { ...priv?.coreLessons?.[id], ...prog?.coreLessons?.[id] };
+  }
   return normalize({
+    coreLessons,
     checks: priv?.checks ?? b.checks, notes: priv?.notes ?? b.notes, braving: priv?.braving ?? b.braving,
     planner: priv?.planner ?? b.planner, rpSel: priv?.rpSel ?? b.rpSel, me: priv?.me ?? {},
     picks: prog?.picks ?? b.picks, growth: prog?.growth ?? b.growth, rp,

@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Copied unchanged from the core lessons package (docs/INTEGRATION.md); run with npx tsx.
+    "scripts/core-lessons/**",
   ]),
 ]);
 
