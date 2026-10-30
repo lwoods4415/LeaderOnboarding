@@ -74,7 +74,7 @@ export function Overview() {
         </div>
       </section>
       <section className="blk"><div className="visible"><span className="tag">What your program leader can see</span>
-        {/* Wording approved by the program owner, 2026-10-14. Core lesson lines: draft, awaiting approval. */}
+        {/* Wording approved by the program owner, 2026-10-14. Core lesson lines approved 2026-10-30. */}
         <div className="vis-grid">
           <div><b>Shared automatically</b><ul className="plain"><li>Your name, cohort, progress through each module, and when you were last active</li><li>Your scenario answers: what you typed first, the options you chose, and any later tries</li><li>Your Practice studio scores, score history and coach feedback</li><li>Your self-assessment and team pulse numbers</li>{program.coreLessons?.length ? <li>Whether you&apos;ve opened and completed each core lesson, and your answers to its check questions</li> : null}</ul></div>
           <div><b>Private unless you choose to share</b><ul className="plain"><li>Your reflections. Each has its own share button, and you can stop sharing at any time.</li><li>Your full practice conversations. Share one from the Practice studio after you get feedback, and stop sharing at any time.</li>{program.coreLessons?.length ? <li>Your written answers in each core lesson. Each has its own share button.</li> : null}</ul>
