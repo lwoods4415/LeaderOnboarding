@@ -79,3 +79,13 @@ export const GENERAL_TEMPLATE_ANSWERS: Record<string, string> = {
     "Use “team member”, “customer” or “client”, and “your leader” for the new leader's own manager. " +
     "Avoid clinical words (patient, nurse, ICU, clinic, charting) unless one appears as a single example among several industries.",
 };
+
+/** The short form an individual on the Complete or Cohort plan fills in to tailor their core lessons. */
+export const TAILOR_QUESTIONS = [
+  { key: "role", label: "What's your role or title?", ph: "e.g. Team lead, supervisor, shift manager", required: true },
+  { key: "industry", label: "What does your team do day to day, and who do you serve?", ph: "e.g. A support team answering customer emails for a software company", required: true },
+  { key: "setting", label: "Does your team work in person, remotely or both?", ph: "e.g. Remote, across three time zones" },
+  { key: "measures", label: "What numbers is your team measured on?", ph: "e.g. Response time, customer satisfaction, tickets closed" },
+  { key: "hardest", label: "What's hardest for you as a new leader?", ph: "e.g. Leading friends who used to be my peers" },
+  { key: "words", label: "Any words or job titles your workplace uses?", ph: "e.g. We say “associates”, not “employees”" },
+] as const;

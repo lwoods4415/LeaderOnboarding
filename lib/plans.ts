@@ -45,6 +45,7 @@ export const PLAN_FEATURES: Record<PaidPlan, string[]> = {
     "Everything in Essentials",
     "Unlimited practice conversations (within daily limits)",
     "“Create your own” practice scenarios",
+    "Core lessons tailored to your role and team",
   ],
   cohort: [
     "Everything in Complete",

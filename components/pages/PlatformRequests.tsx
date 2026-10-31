@@ -7,6 +7,8 @@ import {
   type RequestDetail, type RequestSummary, type Result,
 } from "@/app/(app)/platform/actions";
 import { labelFor, questionsFor } from "@/lib/intake";
+import { setForRequest } from "@/app/(app)/platform/lessonActions";
+import { LessonSetPanel } from "./LessonSets";
 import { raw } from "@/lib/html";
 
 const STATUS: Record<RequestSummary["status"], string> = {
@@ -113,6 +115,7 @@ function Detail({ d, busy, notes, setNotes, run, close }: {
         </dl>
       </details>
 
+      {d.kind === "company" ? <RequestLessons requestId={d.id} /> : null}
       {d.status === "drafting" ? <p className="checkin" style={{ marginTop: 16 }}>Claude is writing the draft. This takes a minute or two, and this page checks back every 10 seconds.</p> : null}
       {d.status === "draft_failed" ? <p className="msg-err" style={{ marginTop: 16 }}>The draft failed: {d.problems}</p> : null}
       {d.kind === "individual" ? <p className="note" style={{ marginTop: 16 }}>This person signed up for the free preview of the general version, so there&apos;s no draft. Close it once you&apos;ve read it.</p> : null}
@@ -170,4 +173,18 @@ function Detail({ d, busy, notes, setNotes, run, close }: {
       ) : null}
     </>
   );
+}
+
+/** The request's tailored core lessons, reviewed alongside its program draft. */
+function RequestLessons({ requestId }: { requestId: string }) {
+  const [setId, setSetId] = useState<string | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    const check = () => setForRequest(requestId).then((id) => { if (live) setSetId(id); }, () => {});
+    void check();
+    const t = setInterval(() => void check(), 15000);
+    return () => { live = false; clearInterval(t); };
+  }, [requestId]);
+  if (!setId) return null;
+  return <details className="ls-in-request" style={{ marginTop: 16 }}><summary><b>Core lessons</b> (tailored with this program)</summary><LessonSetPanel id={setId} /></details>;
 }

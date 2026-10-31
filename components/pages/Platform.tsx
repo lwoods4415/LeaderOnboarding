@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { costOf } from "@/lib/dashboard";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useProfile } from "../Account";
+import { LessonSets } from "./LessonSets";
 import { PlatformRequests } from "./PlatformRequests";
 
 type Org = { id: string; name: string; slug: string; kind: string; status: string; created_at: string };
@@ -100,6 +101,7 @@ export function Platform() {
           </section>
           <Purchases />
           <PlatformRequests />
+          <LessonSets />
         </>
       )}
     </>

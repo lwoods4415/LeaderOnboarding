@@ -240,6 +240,27 @@ describe("company payments", () => {
   });
 });
 
+describe("tailored core lessons", () => {
+  test("are server only: no one signed in (leader, org admin or super admin) can read or write them", async () => {
+    const set = must(await service.from("lesson_sets").insert({ org_program_id: orgs.a.program, use_default: false }).select("id").single());
+    try {
+      must(await service.from("program_core_lessons").insert({ set_id: set.id, lesson_id: "cl-m1", content_version: "test", status: "generated", tailored: { secret: "TAILORED" } }));
+      for (const db of [people.leaderA1.db, people.adminA.db, people.super.db]) {
+        for (const t of ["lesson_sets", "program_core_lessons"]) {
+          const r = await db.from(t).select("*");
+          assert.ok(r.error || r.data.length === 0, `${t} should be denied`);
+        }
+        assert.ok((await db.from("program_core_lessons").insert({ set_id: set.id, lesson_id: "cl-m2", content_version: "x", status: "edited", tailored: {} })).error);
+        assert.ok((await db.from("lesson_sets").update({ use_default: true }).eq("id", set.id)).error || true);
+      }
+      const { data } = await service.from("lesson_sets").select("use_default").eq("id", set.id).single();
+      assert.equal(data.use_default, false, "no one signed in can change a lesson set");
+    } finally {
+      await service.from("lesson_sets").delete().eq("id", set.id);
+    }
+  });
+});
+
 describe("intake requests", () => {
   test("are server only: no one signed in (not even the super admin) or signed out can read or add them", async () => {
     const anon = createClient(URL, PUBLISHABLE, opts);
@@ -275,7 +296,7 @@ describe("signed-out visitors", () => {
   test("can't read anything", async () => {
     const anon = createClient(URL, PUBLISHABLE, opts);
     for (const t of ["profiles", "cohorts", "leader_private", "leader_progress", "shared_items", "custom_scenarios", "usage_log",
-      "organizations", "org_programs", "org_program_secrets", "program_templates", "program_template_secrets", "memberships", "enrollments", "intake_requests", "payments", "org_payments"]) {
+      "organizations", "org_programs", "org_program_secrets", "program_templates", "program_template_secrets", "memberships", "enrollments", "intake_requests", "payments", "org_payments", "lesson_sets", "program_core_lessons"]) {
       const r = await anon.from(t).select("*");
       assert.ok(r.error || r.data.length === 0, `${t} should be empty or denied`);
     }

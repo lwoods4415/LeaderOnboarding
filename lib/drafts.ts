@@ -5,6 +5,7 @@ import type { ProgramContent, ProgramSecrets } from "@/content/program";
 import { STANDARD_TEMPLATE_ID } from "@/content/program";
 import { GENERAL_TEMPLATE_ANSWERS, type IntakeKind } from "./intake";
 import { supabaseAdmin } from "./supabase/admin";
+import { ensureSet, runLessonSet } from "./lessonTailoring";
 import { tailor, type Doc } from "./tailor";
 
 export const GENERAL_TEMPLATE_ID = "leading-people-general-v1";
@@ -76,6 +77,11 @@ export async function runDraft(id: string) {
       draft_error: result.problems.length ? result.problems.join("\n") : null,
       draft_cost: Number(r.draft_cost) + result.cost, drafted_at: new Date().toISOString(),
     }).eq("id", id);
+    // A company's first draft also tailors its core lessons, reviewed alongside the program.
+    if (r.kind === "company" && !redraft) {
+      const set = await ensureSet(db, { intake_request_id: id });
+      await runLessonSet(set.id);
+    }
   } catch (err) {
     console.error("draft failed", id, err);
     await db.from("intake_requests").update({

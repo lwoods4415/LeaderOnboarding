@@ -6,6 +6,7 @@ import { confirmCheckout, getOffer, startCheckout, type Offer } from "@/app/(app
 import { isIndividual, PLAN_FEATURES, PLAN_NAMES, type PaidPlan } from "@/lib/plans";
 import { flushNow } from "@/lib/sync";
 import { useProfile } from "../Account";
+import { TailorForm } from "./TailorForm";
 
 const dollars = (cents: number) => `$${(cents / 100).toFixed(cents % 100 ? 2 : 0)}`;
 const date = (iso: string) => new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
@@ -64,6 +65,7 @@ export function Upgrade() {
         <div className="sub">{profile.plan !== "free" && profile.expiresAt ? `Your access runs until ${date(profile.expiresAt)}` : "Upgrade any time for the full program"}</div></div>
       {msg ? <p className={msg.ok ? "msg-ok" : "msg-err"} role="status" style={{ marginBottom: 18 }}>{msg.text}</p> : null}
       {busy === "confirm" ? <p className="note">Confirming your payment…</p> : null}
+      {eid ? <TailorForm enrollmentId={eid} /> : null}
 
       {!offer ? <p className="note">Loading…</p> : !offer.quotes.length ? (
         <section className="blk"><p>You have the most complete plan. Thank you!</p></section>

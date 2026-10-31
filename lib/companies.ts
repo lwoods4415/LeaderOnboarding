@@ -29,6 +29,8 @@ export async function createAwaitingCompany(db: Db, r: RequestRow, approvedBy: s
     const token = randomBytes(24).toString("base64url");
     const upd = await db.from("intake_requests").update({ status: "awaiting_payment", org_id: org.id, pay_token: token, approved_by: approvedBy }).eq("id", r.id);
     if (upd.error) throw new Error("Couldn't save the payment link.");
+    // Its tailored core lessons now belong to the program.
+    await db.from("lesson_sets").update({ org_program_id: op.id }).eq("intake_request_id", r.id);
     return { orgId: org.id, token };
   } catch (err) {
     await db.from("organizations").delete().eq("id", org.id); // nothing half-created

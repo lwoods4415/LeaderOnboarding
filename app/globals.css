@@ -543,3 +543,10 @@ a.btn.primary{color:var(--bg)}
   .cl-stepper{grid-auto-flow:row}
   .cl-model,.cl-spotlight{padding:14px}
 }
+/* Tailored lesson review (Platform) */
+.ls-panel{display:flex;flex-direction:column;gap:10px}
+.ls-default{display:flex;gap:8px;align-items:center;font-weight:600}
+.ls-lessons{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.ls-edit{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.ls-edit label{display:flex;flex-direction:column;gap:4px}
+.ls-in-request summary{cursor:pointer}
