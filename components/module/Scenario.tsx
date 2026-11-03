@@ -4,6 +4,7 @@ import type { Module } from "@/content";
 import { raw } from "@/lib/html";
 import { update, useLeader } from "@/lib/store";
 import { RATING } from "../ui";
+import { MicButton } from "../MicButton";
 
 export function Scenario({ m }: { m: Module }) {
   const scn = m.scenario;
@@ -37,7 +38,10 @@ export function Scenario({ m }: { m: Module }) {
       <p className="setup" {...raw(scn.setup)} />
       <div>
         <label htmlFor={`say-${m.id}`} className="say-l" {...raw(scn.ask)} />
-        <textarea id={`say-${m.id}`} placeholder="Type it the way you'd actually say it." value={pk.say ?? ""} onChange={(e) => setSay(e.target.value)} />
+        <div className="composer-field">
+          <textarea id={`say-${m.id}`} placeholder="Type it, or tap the microphone and say it the way you actually would." value={pk.say ?? ""} onChange={(e) => setSay(e.target.value)} />
+          <MicButton value={pk.say ?? ""} onChange={setSay} />
+        </div>
       </div>
       {!pk.open ? (
         <div><button className="btn" onClick={reveal}>Show the options →</button></div>

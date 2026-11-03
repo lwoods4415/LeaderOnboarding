@@ -550,3 +550,15 @@ a.btn.primary{color:var(--bg)}
 .ls-edit{display:flex;flex-direction:column;gap:10px;margin-top:10px}
 .ls-edit label{display:flex;flex-direction:column;gap:4px}
 .ls-in-request summary{cursor:pointer}
+/* Talk instead of typing (components/MicButton) */
+.composer-field{position:relative}
+.composer-field textarea{width:100%;padding-right:64px}
+.mic{position:absolute;right:10px;bottom:10px;display:inline-flex;align-items:center;gap:8px;min-width:44px;height:44px;padding:0 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--blue);cursor:pointer}
+.mic svg{width:20px;height:20px;flex:0 0 20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mic:hover:not(:disabled){border-color:var(--blue)}
+.mic:disabled{opacity:.45;cursor:default}
+.mic.on{background:var(--accent);border-color:var(--accent);color:#fff;animation:mic-pulse 1.4s ease-out infinite}
+.mic-label{font-size:.82rem;font-weight:600;white-space:nowrap}
+@keyframes mic-pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
+@media (prefers-reduced-motion:reduce){.mic.on{animation:none}}
+.composer-field:has(.mic.on) textarea{padding-bottom:60px}

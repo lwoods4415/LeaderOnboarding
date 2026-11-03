@@ -16,6 +16,7 @@ import { myPracticeLeft } from "@/app/(app)/studio/actions";
 import { customOpen, moduleOpen, practiceLimit } from "@/lib/plans";
 import { useProfile } from "../Account";
 import { LockedCard } from "../LockedCard";
+import { MicButton } from "../MicButton";
 
 const NOTE = "Practice only. Never type real patient names or details. Your program leader sees your scores and feedback, not the conversation, unless you share it.";
 const MAX_CHARS = 2000;
@@ -251,9 +252,12 @@ export function Studio() {
           </div>
           <div className="composer">
             <label htmlFor="rp-input" className="sr">Your message</label>
-            <textarea id="rp-input" ref={inputRef} placeholder="Type what you'd say…" value={draft} disabled={!ready} maxLength={MAX_CHARS}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }} />
+            <div className="composer-field">
+              <textarea id="rp-input" ref={inputRef} placeholder="Type or tap the microphone and say it…" value={draft} disabled={!ready} maxLength={MAX_CHARS}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }} />
+              <MicButton value={draft} onChange={(v) => setDraft(v.slice(0, MAX_CHARS))} disabled={!ready} onError={setMsg} />
+            </div>
             <div className="row">
               <button className="btn primary" disabled={!ready} onClick={() => void send()}>Send</button>
               {busy ? <button className="btn" onClick={() => ctl.current?.abort()}>Stop</button> : null}
