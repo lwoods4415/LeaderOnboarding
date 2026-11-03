@@ -26,7 +26,10 @@ export type CustomScenario = {
   goal: string;
   reactions: string;
   hidden: string;
+  /** The voice they speak with in voice mode. Null for scenarios saved before the choice existed. */
+  voice: Voice | null;
 };
+export type Voice = "female" | "male";
 
 /** The difficulty description, about the leader's character instead of "the nurse". */
 export const customMode = (modes: Record<Difficulty, string>, mode: Difficulty, who: string) => modes[mode].replace("the nurse", who);

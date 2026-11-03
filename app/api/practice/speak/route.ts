@@ -6,7 +6,7 @@ import type { ProgramContent } from "@/content/program";
 import { currentLeader, fail } from "@/lib/practice";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
-import { SPEAK_CHARS_PER_DAY, SPEAK_MAX_CHARS, VOICE_MODEL, voiceFor } from "@/lib/voices";
+import { SPEAK_CHARS_PER_DAY, SPEAK_MAX_CHARS, VOICE_MODEL, customVoice, voiceFor } from "@/lib/voices";
 
 export async function POST(request: Request) {
   const key = process.env.ELEVENLABS_API_KEY;
@@ -28,17 +28,18 @@ export async function POST(request: Request) {
   ]);
   if (!e || !active) return fail(403, "Your access to this program isn't active.");
 
-  // The character's name picks their voice.
-  let who: string | undefined;
+  // A built-in character's name picks their voice; a leader's own scenario uses the voice they chose.
+  let voice: string | undefined;
   if (isCustomId(b.roleplayId)) {
-    const { data: c } = await supabase.from("custom_scenarios").select("who").eq("id", b.roleplayId.slice(CUSTOM_PREFIX.length)).eq("enrollment_id", e.id).maybeSingle();
-    who = c ? "" : undefined; // a leader's own scenario uses the default voice
+    const { data: c } = await supabase.from("custom_scenarios").select("voice").eq("id", b.roleplayId.slice(CUSTOM_PREFIX.length)).eq("enrollment_id", e.id).maybeSingle();
+    if (!c) return fail(404, "That practice conversation wasn't found.");
+    voice = customVoice(c.voice);
   } else {
     const { data: op } = await supabaseAdmin().from("org_programs").select("content").eq("id", e.org_program_id).maybeSingle();
-    who = (op?.content as ProgramContent | undefined)?.roleplays.find((r) => r.id === b.roleplayId)?.who;
+    const who = (op?.content as ProgramContent | undefined)?.roleplays.find((r) => r.id === b.roleplayId)?.who;
+    if (who === undefined) return fail(404, "That practice conversation wasn't found.");
+    voice = voiceFor(who);
   }
-  if (who === undefined) return fail(404, "That practice conversation wasn't found.");
-  const voice = voiceFor(who);
   if (!voice) return fail(503, "Voice mode isn't set up yet. Use the microphone or type instead.");
 
   // Daily limit, counted in characters spoken.

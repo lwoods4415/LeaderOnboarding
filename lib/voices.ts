@@ -18,8 +18,9 @@ const BY_NAME: Record<string, string> = {
 
 /** For a leader's own scenario, until they can pick a voice: River (relaxed, neutral). */
 export const DEFAULT_VOICE = process.env.ELEVENLABS_DEFAULT_VOICE || "SAz9YHcvj6GT2YYXdXww";
-/** For a leader's own scenario once "Their voice: female / male" is added. */
-export const VOICE_BY_GENDER = { female: "XrExE9yKIg1WjnnlVkGX", male: "cjVigY5qzO86Huf0OWal" } as const; // Matilda, Eric
+/** A leader's own scenario: the voice they chose ("Their voice"), or the neutral default for older scenarios. */
+const VOICE_BY_GENDER: Record<string, string> = { female: "XrExE9yKIg1WjnnlVkGX", male: "cjVigY5qzO86Huf0OWal" }; // Matilda, Eric
+export const customVoice = (choice: string | null) => (choice && VOICE_BY_GENDER[choice]) || DEFAULT_VOICE || undefined;
 
 export function voiceFor(characterName: string): string | undefined {
   const name = characterName.trim().split(/\s+/)[0];

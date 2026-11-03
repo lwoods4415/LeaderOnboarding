@@ -4,9 +4,9 @@ import { useState } from "react";
 import { CUSTOM_LIMITS, STANDARD_SKILLS, type CustomScenario } from "@/content/custom-practice";
 import { checkScenario, createScenario, updateScenario, type ScenarioInput } from "@/lib/customScenarios";
 
-const EMPTY: ScenarioInput = { title: "", who: "", role: "", situation: "", goal: "", reactions: "", hidden: "" };
+const EMPTY: ScenarioInput = { title: "", who: "", role: "", situation: "", goal: "", reactions: "", hidden: "", voice: null };
 
-type Field = { key: keyof ScenarioInput; label: string; hint?: string; ph: string; long?: boolean; optional?: boolean };
+type Field = { key: Exclude<keyof ScenarioInput, "voice">; label: string; hint?: string; ph: string; long?: boolean; optional?: boolean };
 const FIELDS: Field[] = [
   { key: "title", label: "Give it a short title", ph: "e.g. Asking for help with weekend coverage" },
   { key: "who", label: "A name for the other person", hint: "Make one up. Don't use the real person's name.", ph: "e.g. Jordan" },
@@ -62,6 +62,17 @@ export function ScenarioForm({ initial, onSaved, onCancel }: { initial?: CustomS
             </label>
           );
         })}
+        <fieldset className="voice-pick">
+          <legend>Their voice</legend>
+          <small className="note" style={{ fontWeight: 400 }}>How {v.who.trim() || "they"} will sound when you practice in voice mode.</small>
+          <div className="modes" role="radiogroup" aria-label="Their voice">
+            {(["female", "male"] as const).map((g) => (
+              <button key={g} type="button" role="radio" aria-checked={v.voice === g} onClick={() => { setV({ ...v, voice: g }); setError(""); }}>
+                {g === "female" ? "Female" : "Male"}
+              </button>
+            ))}
+          </div>
+        </fieldset>
       </div>
       <p className="note" style={{ marginTop: 12 }}>You&apos;ll be scored on: {STANDARD_SKILLS.join(" · ")}.</p>
       {error ? <p className="msg-err" style={{ marginTop: 10 }}>{error}</p> : null}

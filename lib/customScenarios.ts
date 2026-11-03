@@ -13,7 +13,7 @@ let loading = false;
 const listeners = new Set<() => void>();
 const set = (next: Snapshot) => { snap = next; listeners.forEach((l) => l()); };
 
-const COLUMNS = "id, title, who, role, situation, goal, reactions, hidden";
+const COLUMNS = "id, title, who, role, situation, goal, reactions, hidden, voice";
 
 async function load() {
   if (loading) return;
@@ -43,15 +43,16 @@ export type ScenarioInput = Omit<CustomScenario, "id">;
 /** Trims each field and checks the required ones and the length limits. Returns an error message or null. */
 export function checkScenario(s: ScenarioInput): string | null {
   const need: [keyof ScenarioInput, string][] = [["title", "a title"], ["who", "a name for the other person"], ["role", "their role"], ["situation", "the situation"], ["goal", "your goal"]];
-  for (const [k, label] of need) if (!s[k].trim()) return `Add ${label}.`;
+  for (const [k, label] of need) if (!(s[k] as string).trim()) return `Add ${label}.`;
+  if (!s.voice) return "Choose their voice.";
   for (const k of Object.keys(CUSTOM_LIMITS) as (keyof typeof CUSTOM_LIMITS)[]) {
-    if (k in s && s[k as keyof ScenarioInput].length > CUSTOM_LIMITS[k]) return "One of the fields is too long. Shorten it and try again.";
+    if (k in s && (s[k as keyof ScenarioInput] as string).length > CUSTOM_LIMITS[k]) return "One of the fields is too long. Shorten it and try again.";
   }
   return null;
 }
 
 const clean = (s: ScenarioInput): ScenarioInput =>
-  Object.fromEntries(Object.entries(s).map(([k, v]) => [k, v.trim()])) as ScenarioInput;
+  Object.fromEntries(Object.entries(s).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v])) as ScenarioInput;
 
 export async function createScenario(input: ScenarioInput): Promise<CustomScenario> {
   const db = supabaseBrowser();
