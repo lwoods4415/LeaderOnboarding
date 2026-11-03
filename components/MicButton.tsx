@@ -4,6 +4,7 @@
 // the leader speaks; they can edit before sending. Browsers without it (e.g. Firefox) don't show the button.
 // The browser's own speech service does the recognition; the audio never comes to this site.
 import { useEffect, useRef, useState } from "react";
+import { speechErrorMessage } from "@/lib/speech";
 
 type Recognition = {
   lang: string; continuous: boolean; interimResults: boolean;
@@ -57,9 +58,8 @@ export function MicButton({ value, onChange, disabled, onError }: {
       latest.current.onChange(join(before, join(finished, interim)));
     };
     r.onerror = (e) => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") latest.current.onError?.("To talk instead of type, allow microphone access for this site in your browser, then try again.");
-      else if (e.error === "no-speech") latest.current.onError?.("I didn't catch anything. Tap the microphone and try again.");
-      else if (e.error !== "aborted") latest.current.onError?.("The microphone stopped. Tap it to try again, or type instead.");
+      const message = speechErrorMessage(e.error);
+      if (message) latest.current.onError?.(message);
     };
     r.onend = () => { setListening(false); rec.current = null; };
     rec.current = r;

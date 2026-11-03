@@ -4,6 +4,7 @@
 // /api/practice/speak); then the microphone listens again. The leader's speech is turned into text by the
 // browser's own speech service, as with the microphone button.
 import { useEffect, useRef, useState } from "react";
+import { FATAL_SPEECH_ERRORS, speechErrorMessage } from "@/lib/speech";
 
 type Recognition = {
   lang: string; continuous: boolean; interimResults: boolean;
@@ -38,6 +39,7 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
   const audio = useRef<AudioContext | null>(null);
   const playing = useRef<AudioBufferSourceNode | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const quickEnds = useRef(0);
   const latest = useRef({ onUtterance, onMessage, rpId, enrollmentId });
   useEffect(() => { latest.current = { onUtterance, onMessage, rpId, enrollmentId }; });
 
@@ -106,7 +108,7 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
     r.lang = navigator.language || "en-US";
     r.continuous = true;
     r.interimResults = true;
-    let heard = "", submit = false;
+    let heard = "", submit = false, failed = false;
     r.onresult = (e) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -119,21 +121,31 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
       timer.current = setTimeout(() => { submit = true; r.stop(); }, SILENCE_MS);
     };
     r.onerror = (e) => {
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        latest.current.onMessage("Voice mode needs the microphone. Allow microphone access for this site, then try again.");
-        stop();
+      // A blocked microphone or speech service stops voice mode with the reason; a quiet spell just listens again.
+      if (FATAL_SPEECH_ERRORS.has(e.error)) {
+        failed = true;
+        latest.current.onMessage(`Voice mode stopped. ${speechErrorMessage(e.error)}`);
       }
     };
     r.onend = () => {
       if (timer.current) clearTimeout(timer.current);
       rec.current = null;
+      if (failed) return stop();
       if (!active.current) return;
       const text = heard.trim();
       if ((submit || text) && text) void take(text);
-      else listen(); // the browser stopped listening after a long silence: keep going
+      else if (Date.now() - began < 1000 && ++quickEnds.current >= 3) {
+        // Listening keeps ending the moment it starts: something is blocking it.
+        latest.current.onMessage(`Voice mode stopped. ${speechErrorMessage("keeps-stopping")}`);
+        stop();
+      } else {
+        if (Date.now() - began >= 1000) quickEnds.current = 0;
+        listen(); // the browser stopped listening after a long silence: keep going
+      }
     };
     rec.current = r;
     setPhase("listening");
+    const began = Date.now();
     try { r.start(); } catch { stop(); }
   }
 
@@ -143,6 +155,7 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
     audio.current ??= new AC();
     void audio.current.resume();
     active.current = true;
+    quickEnds.current = 0;
     latest.current.onMessage(`Voice mode is on. Talk to ${who} as you would in person; pause when you've finished.`);
     listen();
   }
