@@ -48,7 +48,7 @@ export async function loadDashboard(orgId: string, orgProgramId: string, program
     db.from("enrollments").select("id, user_id, status, cohorts(name)").eq("org_id", orgId).eq("org_program_id", orgProgramId),
     db.from("leader_progress").select("enrollment_id, data, enrollments!inner(org_id)").eq("enrollments.org_id", orgId),
     db.from("shared_items").select("enrollment_id, kind, item_id, content, shared_at, enrollments!inner(org_id)").eq("enrollments.org_id", orgId),
-    db.from("usage_log").select("user_id, model, input_tokens, output_tokens").eq("org_id", orgId).gte("created_at", monthStart.toISOString()),
+    db.from("usage_log").select("user_id, model, input_tokens, output_tokens").eq("org_id", orgId).in("route", ["message", "feedback"]).gte("created_at", monthStart.toISOString()),
   ]);
   const err = members.error ?? enrollments.error ?? progress.error ?? shared.error ?? usage.error;
   if (err) throw err;

@@ -17,6 +17,7 @@ import { customOpen, moduleOpen, practiceLimit } from "@/lib/plans";
 import { useProfile } from "../Account";
 import { LockedCard } from "../LockedCard";
 import { MicButton } from "../MicButton";
+import { VoiceMode, voiceSupported } from "../VoiceMode";
 
 const NOTE = "Practice only. Never type real patient names or details. Your program leader sees your scores and feedback, not the conversation, unless you share it.";
 const MAX_CHARS = 2000;
@@ -54,6 +55,9 @@ export function Studio() {
   const T = (text: string) => (conv.custom ? { children: text } : raw(text));
   const st = s.rp[conv.id] ?? { mode: "realistic" as Difficulty, turns: [], fb: null, history: [] };
   const [draft, setDraft] = useState("");
+  // Type (or dictate with the mic), or voice mode: a spoken back-and-forth with the character.
+  const [talk, setTalk] = useState<"type" | "voice">("type");
+  const [canVoice] = useState(() => voiceSupported());
   const [busy, setBusy] = useState<null | "reply" | "feedback">(null);
   const [streaming, setStreaming] = useState<string | null>(null);
   const [msg, setMsg] = useState(NOTE);
@@ -83,11 +87,11 @@ export function Studio() {
   // Stop a reply that's still streaming if the leader leaves the studio.
   useEffect(() => () => ctl.current?.abort(), []);
 
-  async function send() {
-    const text = draft.trim();
-    if (!text || busy) return;
-    if (text.length > MAX_CHARS) return setMsg(`Each message can be up to ${MAX_CHARS.toLocaleString()} characters. Shorten it and send again.`);
-    if (leaderTurns >= MAX_LEADER_TURNS) return setMsg(`A conversation can have up to ${MAX_LEADER_TURNS} of your messages. Select "End and get feedback", or "Start over".`);
+  async function send(spoken?: string): Promise<string | null | undefined> {
+    const text = (spoken ?? draft).trim();
+    if (!text || busy) return null;
+    if (text.length > MAX_CHARS) return void setMsg(`Each message can be up to ${MAX_CHARS.toLocaleString()} characters. Shorten it and send again.`);
+    if (leaderTurns >= MAX_LEADER_TURNS) return void setMsg(`A conversation can have up to ${MAX_LEADER_TURNS} of your messages. Select "End and get feedback", or "Start over".`);
     const id = conv.id, mode = st.mode;
     const turns = [...st.turns, { role: "leader" as const, text }];
     const prevFb = st.fb;
@@ -113,19 +117,21 @@ export function Studio() {
         signal: c.signal,
         body: JSON.stringify({ enrollmentId: currentEnrollmentId(), roleplayId: id, difficulty: mode, turns }),
       });
-      if (!res.ok || !res.body) return restore(await errorText(res, "Something interrupted the reply. Try sending again."));
+      if (!res.ok || !res.body) return void restore(await errorText(res, "Something interrupted the reply. Try sending again."));
       const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
       for (let r = await reader.read(); !r.done; r = await reader.read()) {
         reply += r.value;
         setStreaming(reply);
       }
-      if (!reply.trim()) return restore(`${conv.who} couldn't respond to that message. Try rephrasing it.`);
+      if (!reply.trim()) return void restore(`${conv.who} couldn't respond to that message. Try rephrasing it.`);
       update((d) => { rpState(d, id).turns.push({ role: "them", text: reply.trim() }); });
+      return reply.trim();
     } catch {
       const stopped = c.signal.aborted;
       if (reply.trim()) {
         update((d) => { rpState(d, id).turns.push({ role: "them", text: reply.trim() }); });
         setMsg(stopped ? "Stopped." : "Something interrupted the reply. You can carry on from here.");
+        return stopped ? null : reply.trim();
       } else {
         restore(stopped ? "Stopped." : "Something interrupted the reply. Check your connection and try sending again.");
       }
@@ -135,6 +141,7 @@ export function Studio() {
       setBusy(null);
       requestAnimationFrame(() => inputRef.current?.focus());
     }
+    return null;
   }
 
   async function getFeedback() {
@@ -251,8 +258,19 @@ export function Studio() {
             ) : <p className="empty">Start the conversation the way you would in real life. {conv.who} will respond in character.</p>}
           </div>
           <div className="composer">
+            <div className="modes talk-modes" role="radiogroup" aria-label="How you'll talk">
+              <button role="radio" aria-checked={talk === "type"} onClick={() => setTalk("type")}>Type or use the mic</button>
+              <button role="radio" aria-checked={talk === "voice"} disabled={!canVoice} title={canVoice ? undefined : "Voice mode needs Chrome, Edge or Safari"} onClick={() => setTalk("voice")}>Voice mode</button>
+            </div>
+            {talk === "voice" ? (
+              <>
+                <p className="note">Talk with {conv.who} out loud. When you pause, what you said is sent, and {conv.who} answers aloud. The conversation also appears above.</p>
+                <VoiceMode key={conv.id} who={conv.who} rpId={conv.id} enrollmentId={currentEnrollmentId()} enabled={busy !== "feedback" && leaderTurns < MAX_LEADER_TURNS}
+                  onUtterance={(t) => send(t)} onMessage={setMsg} />
+              </>
+            ) : null}
             <label htmlFor="rp-input" className="sr">Your message</label>
-            <div className="composer-field">
+            <div className="composer-field" hidden={talk === "voice"}>
               <textarea id="rp-input" ref={inputRef} placeholder="Type or tap the microphone and say it…" value={draft} disabled={!ready} maxLength={MAX_CHARS}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); } }} />

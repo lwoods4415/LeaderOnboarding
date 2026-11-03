@@ -34,6 +34,7 @@ export default function Page() {
           <li><b>Vercel</b> hosts the website.</li>
           <li><b>Anthropic&apos;s Claude</b> creates the practice partner&apos;s replies and your feedback. Only the text of the practice conversation is sent. Your name and email are never sent.</li>
           <li><b>Your browser&apos;s speech service</b> (Google in Chrome, Apple in Safari) turns your speech into text if you use the microphone instead of typing. Your audio isn&apos;t sent to or stored by this program.</li>
+          <li><b>ElevenLabs</b> speaks the practice partner&apos;s replies aloud in voice mode. Only the character&apos;s reply text is sent. Your own words, name and email are never sent.</li>
           <li>Your browser also keeps a copy of your progress on your device, so typing never waits on the internet and nothing is lost on a bad connection. Signing out removes it from the device once everything is saved, so always sign out on a shared computer.</li>
         </ul>
       </section>

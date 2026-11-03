@@ -33,7 +33,7 @@ async function loadPlatform(): Promise<Row[]> {
     db.from("org_programs").select("id, org_id, program, status, approved_at"),
     db.from("memberships").select("org_id, role, active"),
     db.from("enrollments").select("org_id, plan, status"),
-    db.from("usage_log").select("org_id, model, input_tokens, output_tokens").gte("created_at", monthStart.toISOString()),
+    db.from("usage_log").select("org_id, model, input_tokens, output_tokens").in("route", ["message", "feedback"]).gte("created_at", monthStart.toISOString()),
   ]);
   const err = orgs.error ?? programs.error ?? members.error ?? enrollments.error ?? usage.error;
   if (err) throw err;

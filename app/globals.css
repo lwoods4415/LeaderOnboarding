@@ -562,3 +562,19 @@ a.btn.primary{color:var(--bg)}
 @keyframes mic-pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
 @media (prefers-reduced-motion:reduce){.mic.on{animation:none}}
 .composer-field:has(.mic.on) textarea{padding-bottom:60px}
+/* Voice mode (components/VoiceMode) */
+.talk-modes{margin-bottom:2px}
+.talk-modes button:disabled{opacity:.5;cursor:default}
+.voice{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--surface)}
+.voice.listening{border-color:var(--accent)}
+.voice.speaking{border-color:var(--blue)}
+.voice-start{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;padding:12px 20px}
+.voice-start svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.voice-status{display:flex;align-items:center;gap:10px;font-weight:600}
+.voice-dot{width:12px;height:12px;border-radius:50%;background:var(--muted);flex:0 0 12px}
+.voice.listening .voice-dot{background:var(--accent);animation:mic-pulse 1.4s ease-out infinite}
+.voice.thinking .voice-dot{background:var(--muted);animation:voice-blink 1s ease-in-out infinite}
+.voice.speaking .voice-dot{background:var(--blue);animation:voice-blink .8s ease-in-out infinite}
+.voice-live{color:var(--muted);font-style:italic}
+@keyframes voice-blink{50%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.voice .voice-dot{animation:none}}
