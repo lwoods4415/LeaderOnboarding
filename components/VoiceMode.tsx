@@ -73,6 +73,7 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ enrollmentId: eid, roleplayId: id, text }),
     }).catch(() => null);
+    if (res?.status === 204) return; // only stage directions: nothing to say aloud
     if (!res?.ok) {
       const why = res ? ((await res.json().catch(() => null)) as { error?: string } | null)?.error : null;
       latest.current.onMessage(why ?? "The voice didn't come through. The reply is on screen.");

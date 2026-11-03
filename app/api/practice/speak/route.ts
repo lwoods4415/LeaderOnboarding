@@ -16,8 +16,9 @@ export async function POST(request: Request) {
 
   const b = (await request.json().catch(() => null)) as { enrollmentId?: unknown; roleplayId?: unknown; text?: unknown } | null;
   if (typeof b?.enrollmentId !== "string" || typeof b.roleplayId !== "string" || typeof b.text !== "string") return fail(400, "Nothing to say.");
-  const text = b.text.trim();
-  if (!text) return fail(400, "Nothing to say.");
+  // Stage directions (*pauses*) stay on screen; only the character's words are spoken.
+  const text = b.text.replace(/\*[^*]*\*/g, " ").replace(/\s+/g, " ").trim();
+  if (!text) return new Response(null, { status: 204 });
   if (text.length > SPEAK_MAX_CHARS) return fail(400, "That reply is too long to read aloud.");
 
   // The enrollment must be the caller's own active one (checked as the caller, under row-level security).
