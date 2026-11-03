@@ -277,7 +277,7 @@ export function Studio() {
               <MicButton value={draft} onChange={(v) => setDraft(v.slice(0, MAX_CHARS))} disabled={!ready} onError={setMsg} />
             </div>
             <div className="row">
-              <button className="btn primary" disabled={!ready} onClick={() => void send()}>Send</button>
+              {talk === "voice" ? null : <button className="btn primary" disabled={!ready} onClick={() => void send()}>Send</button>}
               {busy ? <button className="btn" onClick={() => ctl.current?.abort()}>Stop</button> : null}
               <button className="btn" disabled={!ready || leaderTurns < 2} onClick={() => void getFeedback()}>End and get feedback</button>
               <button className="btn ghost" disabled={!ready} onClick={() => { update((d) => { const x = rpState(d, conv.id); x.turns = []; x.fb = null; }); setMsg(NOTE); }}>Start over</button>
