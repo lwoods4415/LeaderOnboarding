@@ -2,8 +2,10 @@
 // Voice mode for the Practice studio: a hands-free, spoken conversation. The leader talks; when they pause,
 // their words are sent; the character's reply appears on screen and is spoken aloud (ElevenLabs, via
 // /api/practice/speak); then the microphone listens again. The leader's speech is turned into text by the
-// browser's own speech service, as with the microphone button.
+// browser's own speech service, as with the microphone button; if that can't be reached (some work networks
+// block it) or the browser has none, the leader's speech is recorded and turned into text through this site.
 import { useEffect, useRef, useState } from "react";
+import { recorderSupported, serverSpeechOn, startRecording, switchToServerSpeech, transcribe, type Recorder } from "@/lib/recorder";
 import { FATAL_SPEECH_ERRORS, speechErrorMessage } from "@/lib/speech";
 
 type Recognition = {
@@ -19,7 +21,7 @@ const ctor = (): RecognitionCtor | undefined => {
   const w = window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor };
   return w.SpeechRecognition ?? w.webkitSpeechRecognition;
 };
-export const voiceSupported = () => !!ctor();
+export const voiceSupported = () => !!ctor() || recorderSupported();
 
 type Phase = "idle" | "listening" | "thinking" | "speaking";
 const SILENCE_MS = 1600; // a pause this long ends the leader's turn
@@ -34,6 +36,7 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
   const [live, setLive] = useState("");
   const active = useRef(false);
   const rec = useRef<Recognition | null>(null);
+  const recorder = useRef<Recorder | null>(null);
   // Replies play through the Web Audio engine, started on the "Start talking" tap, so phones allow
   // them to play later in the conversation without another tap.
   const audio = useRef<AudioContext | null>(null);
@@ -49,6 +52,8 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
     if (timer.current) clearTimeout(timer.current);
     rec.current?.abort();
     rec.current = null;
+    recorder.current?.cancel();
+    recorder.current = null;
     playing.current?.stop();
   }
   function stop() {
@@ -103,12 +108,13 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
 
   function listen() {
     const R = ctor();
-    if (!R || !active.current) return;
+    if (!active.current) return;
+    if (!R || serverSpeechOn(!!R)) return void listenByRecording();
     const r = new R();
     r.lang = navigator.language || "en-US";
     r.continuous = true;
     r.interimResults = true;
-    let heard = "", submit = false, failed = false;
+    let heard = "", submit = false, failed = false, switching = false;
     r.onresult = (e) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -121,7 +127,9 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
       timer.current = setTimeout(() => { submit = true; r.stop(); }, SILENCE_MS);
     };
     r.onerror = (e) => {
-      // A blocked microphone or speech service stops voice mode with the reason; a quiet spell just listens again.
+      // The browser's speech service is blocked: record and turn the speech into text through this site instead.
+      if (e.error === "network" && recorderSupported()) { switching = true; switchToServerSpeech(); return; }
+      // A blocked microphone stops voice mode with the reason; a quiet spell just listens again.
       if (FATAL_SPEECH_ERRORS.has(e.error)) {
         failed = true;
         latest.current.onMessage(`Voice mode stopped. ${speechErrorMessage(e.error)}`);
@@ -132,6 +140,7 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
       rec.current = null;
       if (failed) return stop();
       if (!active.current) return;
+      if (switching) return void listenByRecording();
       const text = heard.trim();
       if ((submit || text) && text) void take(text);
       else if (Date.now() - began < 1000 && ++quickEnds.current >= 3) {
@@ -147,6 +156,33 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
     setPhase("listening");
     const began = Date.now();
     try { r.start(); } catch { stop(); }
+  }
+
+  /** Listening without the browser's speech service: record until the leader pauses, then turn it into text. */
+  async function listenByRecording() {
+    setPhase("listening");
+    setLive("");
+    let r: Recorder;
+    try { r = await startRecording({ endOnSilence: SILENCE_MS }); } catch (err) {
+      latest.current.onMessage(`Voice mode stopped. ${speechErrorMessage((err as Error).message)}`);
+      return stop();
+    }
+    if (!active.current) return r.cancel();
+    recorder.current = r;
+    const recording = await r.done;
+    recorder.current = null;
+    if (!active.current) return;
+    if (!recording) return void listenByRecording(); // nothing said yet: keep listening
+    setPhase("thinking");
+    const out = await transcribe(recording);
+    if (!active.current) return;
+    if ("error" in out) {
+      latest.current.onMessage(`Voice mode stopped. ${out.error}`);
+      return stop();
+    }
+    if (!out.text) return void listenByRecording();
+    setLive(out.text);
+    await take(out.text);
   }
 
   function start() {

@@ -31,3 +31,10 @@ export function voiceFor(characterName: string): string | undefined {
 /** Characters spoken per leader per day (UTC), so costs stay predictable. */
 export const SPEAK_CHARS_PER_DAY = Number(process.env.SPEAK_CHARS_PER_DAY) || 20000;
 export const SPEAK_MAX_CHARS = 1500;
+
+/** Speech-to-text fallback (app/api/practice/transcribe), when the browser's own speech service is unavailable. */
+export const STT_MODEL = process.env.ELEVENLABS_STT_MODEL || "scribe_v2";
+/** Seconds of speech turned into text per leader per day (UTC). */
+export const LISTEN_SECONDS_PER_DAY = Number(process.env.LISTEN_SECONDS_PER_DAY) || 3600;
+/** One recording; well under the hosting platform's request limit (a minute of speech is far smaller). */
+export const LISTEN_MAX_BYTES = 4_000_000;
