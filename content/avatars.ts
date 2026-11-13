@@ -9,6 +9,8 @@ export type Look = {
   hair: string;
   style: HairStyle;
   top: string;
+  /** Iris color; brown if not set. */
+  eyes?: string;
   glasses?: boolean;
   beard?: boolean;
 };
@@ -16,15 +18,15 @@ export type Look = {
 const BY_NAME: Record<string, Look> = {
   Tasha: { skin: "#8D5A3B", hair: "#1E1410", style: "curls", top: "#2E7D6B" },
   Marcus: { skin: "#6B4330", hair: "#16100C", style: "crop", top: "#34558B", beard: true },
-  Jen: { skin: "#F1C9A5", hair: "#B5763A", style: "bob", top: "#8E4C7A", glasses: true },
+  Jen: { skin: "#F1C9A5", hair: "#B5763A", style: "bob", top: "#8E4C7A", glasses: true, eyes: "#6F7A3A" },
   Priya: { skin: "#B7825C", hair: "#20140F", style: "long", top: "#C2562B" },
-  Dana: { skin: "#E3B08C", hair: "#5A3A26", style: "bun", top: "#3D6E9E" },
-  Leah: { skin: "#F4D2B8", hair: "#D9A55A", style: "waves", top: "#5C8A4A" },
+  Dana: { skin: "#E3B08C", hair: "#5A3A26", style: "bun", top: "#3D6E9E", eyes: "#4E6B8A" },
+  Leah: { skin: "#F4D2B8", hair: "#D9A55A", style: "waves", top: "#5C8A4A", eyes: "#3F7C8C" },
 };
 
 const BY_VOICE: Record<Voice | "neutral", Look> = {
   female: { skin: "#C48B66", hair: "#2B1D16", style: "long", top: "#6D4C9C" },
-  male: { skin: "#D9A47F", hair: "#3A2A20", style: "short", top: "#2F6F8F", glasses: true },
+  male: { skin: "#D9A47F", hair: "#3A2A20", style: "short", top: "#2F6F8F", glasses: true, eyes: "#4A6A85" },
   neutral: { skin: "#B88160", hair: "#2E2420", style: "short", top: "#4D6A86" },
 };
 
