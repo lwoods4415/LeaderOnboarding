@@ -18,6 +18,7 @@ import { useProfile } from "../Account";
 import { LockedCard } from "../LockedCard";
 import { MicButton } from "../MicButton";
 import { VoiceMode, voiceSupported } from "../VoiceMode";
+import { lookFor } from "@/content/avatars";
 
 const NOTE = "Practice only. Never type real patient names or details. Your program leader sees your scores and feedback, not the conversation, unless you share it.";
 const MAX_CHARS = 2000;
@@ -265,7 +266,7 @@ export function Studio() {
             {talk === "voice" ? (
               <>
                 <p className="note">Talk with {conv.who} out loud. When you pause, what you said is sent, and {conv.who} answers aloud. The conversation also appears above.</p>
-                <VoiceMode key={conv.id} who={conv.who} rpId={conv.id} enrollmentId={currentEnrollmentId()} enabled={busy !== "feedback" && leaderTurns < MAX_LEADER_TURNS}
+                <VoiceMode key={conv.id} who={conv.who} look={lookFor(conv.who, { custom: conv.custom, voice: conv.source?.voice })} rpId={conv.id} enrollmentId={currentEnrollmentId()} enabled={busy !== "feedback" && leaderTurns < MAX_LEADER_TURNS}
                   onUtterance={(t) => send(t)} onMessage={setMsg} />
               </>
             ) : null}

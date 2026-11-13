@@ -4,7 +4,10 @@
 // /api/practice/speak); then the microphone listens again. The leader's speech is turned into text by the
 // browser's own speech service, as with the microphone button; if that can't be reached (some work networks
 // block it) or the browser has none, the leader's speech is recorded and turned into text through this site.
+// An illustrated character (components/Avatar) shows who's talking; its mouth follows the reply's audio.
 import { useEffect, useRef, useState } from "react";
+import type { Look } from "@/content/avatars";
+import { Avatar } from "./Avatar";
 import { recorderSupported, serverSpeechOn, startRecording, switchToServerSpeech, transcribe, type Recorder } from "@/lib/recorder";
 import { FATAL_SPEECH_ERRORS, speechErrorMessage } from "@/lib/speech";
 
@@ -26,8 +29,8 @@ export const voiceSupported = () => !!ctor() || recorderSupported();
 type Phase = "idle" | "listening" | "thinking" | "speaking";
 const SILENCE_MS = 1600; // a pause this long ends the leader's turn
 
-export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollmentId }: {
-  who: string; rpId: string; enrollmentId: string | null; enabled: boolean;
+export function VoiceMode({ who, look, enabled, onUtterance, onMessage, rpId, enrollmentId }: {
+  who: string; look: Look; rpId: string; enrollmentId: string | null; enabled: boolean;
   /** Sends what the leader said; resolves with the character's reply (or null if it didn't go through). */
   onUtterance: (text: string) => Promise<string | null | undefined>;
   onMessage: (text: string) => void;
@@ -41,6 +44,17 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
   // them to play later in the conversation without another tap.
   const audio = useRef<AudioContext | null>(null);
   const playing = useRef<AudioBufferSourceNode | null>(null);
+  // The reply's loudness, for the avatar's mouth.
+  const analyser = useRef<AnalyserNode | null>(null);
+  const samples = useRef<Float32Array<ArrayBuffer> | null>(null);
+  const [level] = useState(() => () => {
+    const a = analyser.current, buf = samples.current;
+    if (!a || !buf) return 0;
+    a.getFloatTimeDomainData(buf);
+    let sum = 0;
+    for (const v of buf) sum += v * v;
+    return Math.min(1, Math.sqrt(sum / buf.length) * 5);
+  });
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const quickEnds = useRef(0);
   const latest = useRef({ onUtterance, onMessage, rpId, enrollmentId });
@@ -85,7 +99,13 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
       if (!active.current) return;
       const src = ctx.createBufferSource();
       src.buffer = buf;
-      src.connect(ctx.destination);
+      if (!analyser.current) {
+        analyser.current = ctx.createAnalyser();
+        analyser.current.fftSize = 512;
+        analyser.current.connect(ctx.destination);
+        samples.current = new Float32Array(analyser.current.fftSize);
+      }
+      src.connect(analyser.current);
       playing.current = src;
       await new Promise<void>((resolve) => { src.onended = () => resolve(); src.start(); });
     } catch {
@@ -199,7 +219,9 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
 
   const label = { idle: "", listening: "Listening… pause when you've finished", thinking: `${who} is thinking…`, speaking: `${who} is speaking…` }[shown];
   return (
-    <div className={`voice ${shown}`}>
+    <div className={`voice voice-stage ${shown}`}>
+      <Avatar look={look} phase={shown} name={who} level={level} />
+      <div className="voice-side">
       {shown === "idle" ? (
         <button type="button" className="btn primary voice-start" disabled={!enabled} onClick={start}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5 11a7 7 0 0 0 14 0M12 18v3M8 21h8" /></svg>
@@ -215,6 +237,7 @@ export function VoiceMode({ who, enabled, onUtterance, onMessage, rpId, enrollme
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }
