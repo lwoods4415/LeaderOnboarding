@@ -5,7 +5,7 @@
 import { currentLeader, fail } from "@/lib/practice";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
-import { LISTEN_MAX_BYTES, LISTEN_SECONDS_PER_DAY, STT_MODEL } from "@/lib/voices";
+import { elevenLabsProblem, LISTEN_MAX_BYTES, LISTEN_SECONDS_PER_DAY, STT_MODEL } from "@/lib/voices";
 
 export async function POST(request: Request) {
   const key = process.env.ELEVENLABS_API_KEY;
@@ -42,8 +42,12 @@ export async function POST(request: Request) {
   if (typeof lang === "string" && /^[a-z]{2,3}$/.test(lang)) body.append("language_code", lang);
   const res = await fetch("https://api.elevenlabs.io/v1/speech-to-text", { method: "POST", headers: { "xi-api-key": key }, body, signal: request.signal }).catch(() => null);
   if (!res?.ok) {
-    console.error("elevenlabs stt failed", res?.status, await res?.text().catch(() => ""));
-    return fail(502, res?.status === 401 ? "Speech isn't set up correctly. Let your program leader know." : "Your speech couldn't be turned into text. Try again, or type instead.");
+    const why = await elevenLabsProblem(res, "stt");
+    return fail(502, {
+      quota: "Talking instead of typing isn't available on this network right now. Type your message instead.",
+      auth: "Speech isn't set up correctly. Let your program leader know.",
+      other: "Your speech couldn't be turned into text. Try again, or type instead.",
+    }[why]);
   }
   const out = (await res.json().catch(() => null)) as { text?: string; words?: { end?: number }[] } | null;
   const seconds = Math.max(1, Math.ceil(Math.max(0, ...(out?.words ?? []).map((w) => w.end ?? 0))));

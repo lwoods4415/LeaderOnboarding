@@ -32,6 +32,15 @@ export function voiceFor(characterName: string): string | undefined {
 export const SPEAK_CHARS_PER_DAY = Number(process.env.SPEAK_CHARS_PER_DAY) || 20000;
 export const SPEAK_MAX_CHARS = 1500;
 
+/** Why an ElevenLabs request failed: the account's credits ran out, the key is wrong, or anything else.
+ * ElevenLabs answers 401 for both of the first two, so the reason is read from the body. Logs the details. */
+export async function elevenLabsProblem(res: Response | null, what: string): Promise<"quota" | "auth" | "other"> {
+  const body = await res?.text().catch(() => "") ?? "";
+  console.error(`elevenlabs ${what} failed`, res?.status, body);
+  if (body.includes("quota_exceeded")) return "quota";
+  return res?.status === 401 ? "auth" : "other";
+}
+
 /** Speech-to-text fallback (app/api/practice/transcribe), when the browser's own speech service is unavailable. */
 export const STT_MODEL = process.env.ELEVENLABS_STT_MODEL || "scribe_v2";
 /** Seconds of speech turned into text per leader per day (UTC). */

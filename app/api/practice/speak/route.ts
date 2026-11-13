@@ -6,7 +6,7 @@ import type { ProgramContent } from "@/content/program";
 import { currentLeader, fail } from "@/lib/practice";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { supabaseServer } from "@/lib/supabase/server";
-import { SPEAK_CHARS_PER_DAY, SPEAK_MAX_CHARS, VOICE_MODEL, customVoice, voiceFor } from "@/lib/voices";
+import { SPEAK_CHARS_PER_DAY, SPEAK_MAX_CHARS, VOICE_MODEL, customVoice, elevenLabsProblem, voiceFor } from "@/lib/voices";
 
 export async function POST(request: Request) {
   const key = process.env.ELEVENLABS_API_KEY;
@@ -57,8 +57,12 @@ export async function POST(request: Request) {
     signal: request.signal,
   }).catch(() => null);
   if (!res?.ok || !res.body) {
-    console.error("elevenlabs failed", res?.status, await res?.text().catch(() => ""));
-    return fail(502, res?.status === 401 ? "Voice mode isn't set up correctly. Let your program leader know." : "The voice didn't come through. The reply is on screen; carry on, or switch to the microphone.");
+    const why = await elevenLabsProblem(res, "speak");
+    return fail(502, {
+      quota: "Spoken replies are paused for now. The reply is on screen; you can keep practicing by reading it.",
+      auth: "Voice mode isn't set up correctly. Let your program leader know.",
+      other: "The voice didn't come through. The reply is on screen; carry on, or switch to the microphone.",
+    }[why]);
   }
 
   const { error } = await supabaseAdmin().from("usage_log").insert({
